@@ -12,8 +12,8 @@ MonadPlus defines two methods. mzero is the monadic value standing for zero resu
 > import Test.Hspec
 
 > main :: IO ()
-> main = hspec $
->   describe "MonadPlus" $ do
+> main = hspec $ do
+>   describe "MonadPlus for Maybe monad" $ do
 >     it "should be Nothing" $
 >       (mzero :: Maybe Int) `shouldBe` Nothing
 >     it "should be the first non-empty value" $ do
@@ -23,4 +23,12 @@ MonadPlus defines two methods. mzero is the monadic value standing for zero resu
 The Maybe monad cannot have more than one solution, thus discarding the second one.
 
 >       Just 3 `mplus` Just 4 `shouldBe` Just 3
-
+>
+>   describe "MonadPlus for [] monad" $ do
+>     it "should be an empty list" $
+>       (mzero :: [Int]) `shouldBe` []
+>     it "should be the first non-empty value" $ do
+>       [] `mplus` [1, 2, 3] `shouldBe` [1, 2, 3]
+>       [1, 2, 3] `mplus` [] `shouldBe` [1, 2, 3]
+>     it "should concat the two lists if both not empty" $
+>       [1, 2, 3] `mplus` [6, 5, 4] `shouldBe` [1, 2, 3, 6, 5, 4]
