@@ -7,10 +7,10 @@ Definition
 MonadPlus defines two methods. mzero is the monadic value standing for zero results; while mplus is a binary function which combines two computations.
 
 > module Main where
-
-> import Control.Monad
+>
 > import Test.Hspec
-
+> import Control.Monad
+>
 > main :: IO ()
 > main = hspec $ do
 >   describe "MonadPlus for Maybe monad" $ do
