@@ -55,6 +55,7 @@ NOTE: The following code is for demonstration purpose only.
 >   && any isNumber s
 >   && any isPunctuation s
 >
+> {-# NOINLINE getLineRef #-}
 > getLineRef :: IORef String
 > getLineRef = unsafePerformIO $ newIORef ""
 >
