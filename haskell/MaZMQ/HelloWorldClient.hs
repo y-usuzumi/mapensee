@@ -14,7 +14,7 @@ import Data.ByteString.Char8 (pack, unpack)
 main :: IO ()
 main =
     runZMQ $ do
-        liftIO $ putStrLn "Connecting to Hello World server…"
+        liftIO $ putStrLn "Connecting to Hello World server..."
         reqSocket <- socket Req
         connect reqSocket "tcp://localhost:5555"
         forM_ [1..10] $ \i -> do
