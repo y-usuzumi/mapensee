@@ -45,7 +45,7 @@ Other useful stuff:
 < instance MonadTrans MaybeT where
 <   lift = MaybeT . (liftM Just)
 
-NOTE: The following code is for demonstration purpose only.
+NOTE: All following code is for demonstration purpose only.
       Do NOT use it in production code!!!
 
 > isValid :: String -> Bool
@@ -74,6 +74,42 @@ NOTE: The following code is for demonstration purpose only.
 >   value <- getValidPassphrase
 >   lift $ putStrLn "Storing in database..."
 >
+
+Now on to the StateT transformer:
+
+Recall the definition of State monad:
+< newtype State s a = State { runState :: (s -> (a, s))}
+<
+< instance Monad (State s) where
+<   return a = State $ \s -> (a, s)  -- Running with any state will return `a`
+<   (State x) >>= f = State $ \s ->
+<     let (val, s') = x s  -- Run the previous statefunc and get a val and new state
+<     in runState (f val) s'  -- Passing `val` to f will make you a new-new statefunc
+<                             -- Running the new-new statefunc with the new state
+<                             -- will bring you (newVal, newNewState)
+
+(
+  Sidenote: Actually, it's implemented just the opposite way:
+  < type State s = StateT a Identity
+  But for simplicity we'll pretend the above.
+)
+
+Here comes StateT:
+< newtype StateT s m a = StateT { runStateT :: (s -> m (a, s))}
+<
+< instance (Monad m) => Monad (StateT s m) where
+<   return a = StateT $ \s -> return (a, s)
+<   (StateT x) >>= f = StateT $ \s ->
+<     (val, s') <- x s
+<     in runStateT (f val) s'
+<
+< instance (Monad m) => MonadState s (StateT s m) where
+<   get = StateT $ \s -> return (s, s)  -- Get the passed-in state, while leaving
+<                                       -- the state unchanged
+<   put s = StateT $ \_ -> return ((), s)  -- Set state as s, disregarding the
+<                                          -- passed-in state
+
+
 > main :: IO ()
 > main = do
 >   hspec $ do
