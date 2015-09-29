@@ -15,9 +15,13 @@ a single one that shares the behavior of both.
 >
 > import Test.Hspec
 > import Data.Char
+> import Data.IORef
 > import Control.Monad
 > import Control.Monad.Trans
 > import Control.Monad.Trans.Maybe
+> import Prelude hiding (getLine)
+> import System.IO hiding (getLine)
+> import System.IO.Unsafe
 
 Definition of MaybeT:
 < newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
@@ -41,12 +45,21 @@ Other useful stuff:
 < instance MonadTrans MaybeT where
 <   lift = MaybeT . (liftM Just)
 
+NOTE: The following code is for demonstration purpose only.
+      Do NOT use it in production code!!!
+
 > isValid :: String -> Bool
 > isValid s =
 >   length s >= 8
 >   && any isAlpha s
 >   && any isNumber s
 >   && any isPunctuation s
+>
+> getLineRef :: IORef String
+> getLineRef = unsafePerformIO $ newIORef ""
+>
+> getLine :: IO String
+> getLine = readIORef getLineRef
 >
 > getValidPassphrase :: MaybeT IO String
 > getValidPassphrase = do
@@ -59,12 +72,32 @@ Other useful stuff:
 >   lift $ putStrLn "Insert your new passphrase:"
 >   value <- getValidPassphrase
 >   lift $ putStrLn "Storing in database..."
-> 
+>
 > main :: IO ()
-> main = hspec $ do
->   -- Don't know how to test IO yet.
+> main = do
+>   hspec $ do
+>     describe "Check passphrase" $ do
+>       it "should reject alphabet-only passwords" $ do
+>         writeIORef getLineRef "onlyalphabet"
+>         passphrase <- runMaybeT getValidPassphrase
+>         passphrase `shouldBe` Nothing
+>       it "should reject numeric-only passwords" $ do
+>         writeIORef getLineRef "135797531"
+>         passphrase <- runMaybeT getValidPassphrase
+>         passphrase `shouldBe` Nothing
+>       it "should reject punc-only passwords" $ do
+>         writeIORef getLineRef "-[;.=]]'['.\"\"']'"
+>         passphrase <- runMaybeT getValidPassphrase
+>         passphrase `shouldBe` Nothing
+>       it "should reject passwords too short" $ do
+>         writeIORef getLineRef "Dd3["
+>         passphrase <- runMaybeT getValidPassphrase
+>         passphrase `shouldBe` Nothing
+>       it "should accept valid passwords" $ do
+>         writeIORef getLineRef "DDDDDDDdddddddd3333333]]]]]]]"
+>         passphrase <- runMaybeT getValidPassphrase
+>         passphrase `shouldBe` (Just "DDDDDDDdddddddd3333333]]]]]]]")
 >   return ()
 
 Not so intuitive right? I'm still quite confused and not sure how much it can
 help simplify my code.
-
