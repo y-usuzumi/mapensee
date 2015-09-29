@@ -20,8 +20,8 @@ main =
     subscribe subscriber "10001"
     liftIO $ putStrLn "Starting weather broadcast client..."
     records <- replicateM 5 $ do
-      liftIO $ putStrLn "Got a message"
       update <- receive subscriber
+      liftIO $ putStrLn "Got a message"
       let [_, temp, hum] = map read $ words $ C8.unpack update
       return (temp, hum)
     liftIO $ printf "NY City: avg temperature of %.1f°C / avg humidity of %.1f%%\n"
