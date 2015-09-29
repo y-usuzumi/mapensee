@@ -1,2 +1,2 @@
 # MaPensée
-Collections of small code snippets.
+My collection of code
