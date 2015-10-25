@@ -1,0 +1,56 @@
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE TypeFamilies #-}
+
+module GAKit (
+  Gene(..),
+  GenericGene(..),
+  BinaryGene(..),
+  Genome(..),
+  ListGenome(..),
+  CrossoverSelector,
+  CrossoverAlgorithm
+  ) where
+
+import Data.Bits
+
+class Gene (gtype :: * -> *) dtype where
+  fromData :: dtype -> gtype dtype
+  toData :: gtype dtype -> dtype
+
+data GenericGene dtype where
+  GenericGene :: dtype -> GenericGene dtype
+
+instance Gene GenericGene dtype where
+  fromData = GenericGene
+  toData (GenericGene d) = d
+
+data BinaryGene dtype where
+  BinaryGene :: (Bits dtype) => dtype -> BinaryGene dtype
+
+instance (Bits dtype) => Gene BinaryGene dtype where
+  fromData = BinaryGene
+  toData (BinaryGene d) = d
+
+class (Functor f, Gene gtype dtype) => Genome (gntype :: (* -> *) -> * -> *) f gtype dtype |
+  gntype -> f where
+  fromDataCollection :: f dtype -> gntype gtype dtype
+  toDataCollection :: gntype gtype dtype -> f dtype
+  genes :: gntype gtype dtype -> f (gtype dtype)
+
+data ListGenome gtype dtype where
+  ListGenome :: (Gene gtype dtype) => [dtype] -> ListGenome gtype dtype
+
+instance (Gene gtype dtype) => Genome ListGenome [] gtype dtype where
+  fromDataCollection = ListGenome
+  toDataCollection (ListGenome d) = d
+  genes (ListGenome d) = fmap fromData d
+
+type CrossoverSelector m gtype dtype = (Monad m, Gene gtype dtype) => gtype dtype -> gtype dtype -> m Bool
+type CrossoverAlgorithm m gtype dtype = (gtype dtype -> gtype dtype -> CrossoverSelector m gtype dtype -> gtype dtype)
+
