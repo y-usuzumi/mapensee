@@ -7,14 +7,16 @@
 -- 目标：求解z = (0.5-(sin(sqrt(x**2+y**2))**2-0.5)/(1+(0.001*(x**2+y**2))**2))的最大值
 
 
-import Data.Bits
-import Data.List
-import qualified Data.Vector as V
-import Data.STRef
 import Control.Monad
 import Control.Monad.Loops
 import Control.Monad.Random
 import Control.Monad.ST
+import Data.Bits
+import Data.Function
+import Data.IORef
+import Data.List
+import qualified Data.Vector as V
+import Data.STRef
 
 data Gene dtype where
   MkGene :: (FiniteBits dtype, Bounded dtype) => dtype -> Gene dtype
@@ -94,9 +96,9 @@ assess genome = let
   (0.5 - (sin (sqrt (x**2 + y**2))**2 - 0.5) / (1 + (0.001 * (x**2 + y**2)**2)))
 
 -- 自动生成原始人口
-populate :: forall m. (MonadRandom m) => Int -> m V.Vector IntGenome
+populate :: forall m. (MonadRandom m) => Int -> m (V.Vector IntGenome)
 populate num =
-  replicateM num populateOne
+  V.replicateM num populateOne
   where
     populateOne :: m IntGenome
     populateOne = do
@@ -109,14 +111,63 @@ select :: (MonadRandom m) => V.Vector IntGenome -> m IntGenome
 select genomes = do
   let assessments = V.map assess genomes
   thres <- getRandomR (0, sum assessments)
-  return (pick thres genomes)
+  return (pick thres genomes assessments)
   where
-    pick :: Double -> Double -> V.Vector IntGenome -> V.Vector Double -> IntGenome
-    pick thres curr genomes assessments = runST $ do
-      {
-        
-      } untilM $
-      
+    pick :: Double -> V.Vector IntGenome -> V.Vector Double -> IntGenome
+    pick thres genomes assessments = runST $ do
+      let gapairs = V.zip genomes assessments
+      idxRef <- newSTRef 0
+      currRef <- newSTRef 0.0
+      (_, genome) <- iterateUntil ((> thres) . fst) $ do
+        idx <- readSTRef idxRef
+        curr <- readSTRef currRef
+        let (genome, assessment) = gapairs V.! idx
+        modifySTRef' idxRef (+1)
+        let newCurr = curr + assessment
+        writeSTRef currRef newCurr
+        return (newCurr, genome)
+      return genome
+
+data Playground = Playground {
+  crossoverRate :: Double,
+  mutateRate :: Double,
+  maxPopulation :: Int,
+  maxGens :: Int
+  }
+
+mkNextGen :: (MonadRandom m) => Playground -> V.Vector IntGenome -> m (V.Vector IntGenome)
+mkNextGen Playground{..} genomes = do
+  -- Leave the best one
+  let best = V.maximumBy (compare `on` assess) genomes
+  offspringPairs <- replicateM (maxPopulation `quot` 2 - 1) $ do
+    [father, mother] <- replicateM 2 (select genomes)
+    crossover father mother crossoverRate
+  -- TODO: Very bad performance
+  let offsprings = (V.fromList $ join $ map (\(x, y) -> [x, y]) offspringPairs) `V.snoc` best
+  V.mapM (`mutate` mutateRate) offsprings
 
 main :: IO ()
-main = undefined
+main = do
+  let playground = Playground {
+    crossoverRate = 0.8,
+    mutateRate = 0.2,
+    maxPopulation = 800,
+    maxGens = 500
+    }
+  initialGen <- populate $ maxPopulation playground
+  genRef <- newIORef initialGen
+  idxRef <- newIORef 0
+  (_, lastGen) <- iterateUntil ((>= maxGens playground) . fst) (
+    do
+      idx <- readIORef idxRef
+      gen <- readIORef genRef
+      putStrLn $ "Gen " ++ show (idx + 1) ++ ":"
+      print $ sum $ V.map assess gen
+      nextGen <- mkNextGen playground gen
+      writeIORef genRef nextGen
+      modifyIORef idxRef (+1)
+      return (idx, nextGen)
+    )
+  let bestChoice = V.maximumBy (compare `on` assess) lastGen
+  putStrLn $ "Best choice assessed as: " ++ show (assess bestChoice)
+  putStrLn $ "Final result: " ++ show (genomeToCoord bestChoice)
