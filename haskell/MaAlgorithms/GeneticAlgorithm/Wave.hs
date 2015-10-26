@@ -15,20 +15,25 @@ import Data.Bits
 import Data.Function
 import Data.IORef
 import Data.List
-import qualified Data.Vector as V
 import Data.STRef
+import qualified Data.Vector as V
+import Data.Word
 
+-- 基因类型
 data Gene dtype where
   MkGene :: (FiniteBits dtype, Bounded dtype) => dtype -> Gene dtype
 
+-- 由于使用了GADTs，直接deriving Show是不行的。。
 deriving instance Show (dtype) => Show (Gene dtype)
 
+-- 基因组类型。分别用geneX和geneY对应X坐标和Y坐标的基因表示
 data Genome dtype = MkGenome {
   geneX :: Gene dtype,
   geneY :: Gene dtype
   } deriving Show
 
-type Probability = Double  -- The probability that crossover happens. [0.0, 1.0]
+-- 交叉概率、变异概率等的表示
+type Rate = Double
 
 selectRandomRange :: (MonadRandom m, FiniteBits dtype) => dtype -> m (Int, Int)
 selectRandomRange d = do
@@ -43,7 +48,7 @@ crossoverGene (MkGene father) (MkGene mother) = do
   return (MkGene (father .&. counterMask .|. mother .&. mask), MkGene (mother .&. counterMask .|. father .&. mask))
 
 
-crossover :: (MonadRandom m, Bounded dtype) => Genome dtype -> Genome dtype -> Probability -> m (Genome dtype, Genome dtype)  -- Crossover makes two offsprings from two parents
+crossover :: (MonadRandom m, Bounded dtype) => Genome dtype -> Genome dtype -> Rate -> m (Genome dtype, Genome dtype)  -- Crossover makes two offsprings from two parents
 crossover father mother prob = do
   rnd <- getRandomR (0.0, 1.0)
   if prob >= rnd then
@@ -64,7 +69,7 @@ mutateGene (MkGene gene) = do
       readSTRef stRef >>= writeSTRef stRef . flip complementBit idx
     readSTRef stRef
 
-mutate :: (MonadRandom m, Bounded dtype) => Genome dtype -> Probability -> m (Genome dtype)
+mutate :: (MonadRandom m, Bounded dtype) => Genome dtype -> Rate -> m (Genome dtype)
 mutate MkGenome{..} prob = do
   [rnd0, rnd1] <- take 2 <$> getRandomRs (0.0, 1.0)
   newGeneX <- if prob >= rnd0 then mutateGene geneX else return geneX
@@ -73,47 +78,45 @@ mutate MkGenome{..} prob = do
 
 -- 以下是专门用于求解本问题的非通用代码
 
-type IntGene = Gene Int
-type IntGenome = Genome Int
+type Word64Gene = Gene Word64
+type Word64Genome = Genome Word64
 
-genomeToCoord :: IntGenome -> (Double, Double)
+genomeToCoord :: Word64Genome -> (Double, Double)
 genomeToCoord MkGenome {..} =
   (geneToAxis geneX, geneToAxis geneY)
   where
-    geneToAxis :: IntGene -> Double
+    geneToAxis :: Word64Gene -> Double
     geneToAxis (MkGene d) = let
       numD = fromIntegral d
-      -- TODO: 不太理解为什么一定要加类型限定
-      numMinBound = fromIntegral (minBound :: Int)
-      numMaxBound = fromIntegral (maxBound :: Int)
+      numMaxBound = fromIntegral (maxBound :: Word64)
       in
-        if d < 0 then -numD / numMinBound * 10 else numD / numMaxBound * 10
+        numD / numMaxBound * 20 - 10
 
-assess :: IntGenome -> Double
+assess :: Word64Genome -> Double
 assess genome = let
   (x, y) = genomeToCoord genome
   in
   (0.5 - (sin (sqrt (x**2 + y**2))**2 - 0.5) / (1 + (0.001 * (x**2 + y**2)**2)))
 
 -- 自动生成原始人口
-populate :: forall m. (MonadRandom m) => Int -> m (V.Vector IntGenome)
+populate :: forall m. (MonadRandom m) => Int -> m (V.Vector Word64Genome)
 populate num =
   V.replicateM num populateOne
   where
-    populateOne :: m IntGenome
+    populateOne :: m Word64Genome
     populateOne = do
       [gx, gy] <- replicateM 2 $ getRandomR (minBound, maxBound)
       return MkGenome {geneX=MkGene gx, geneY=MkGene gy}
 
 -- Check it out with map genomeToCoord <$> populate 3 :)
 
-select :: (MonadRandom m) => V.Vector IntGenome -> m IntGenome
+select :: (MonadRandom m) => V.Vector Word64Genome -> m Word64Genome
 select genomes = do
   let assessments = V.map assess genomes
   thres <- getRandomR (0, sum assessments)
   return (pick thres genomes assessments)
   where
-    pick :: Double -> V.Vector IntGenome -> V.Vector Double -> IntGenome
+    pick :: Double -> V.Vector Word64Genome -> V.Vector Double -> Word64Genome
     pick thres genomes assessments = runST $ do
       let gapairs = V.zip genomes assessments
       idxRef <- newSTRef 0
@@ -135,7 +138,7 @@ data Playground = Playground {
   maxGens :: Int
   }
 
-mkNextGen :: (MonadRandom m) => Playground -> V.Vector IntGenome -> m (V.Vector IntGenome)
+mkNextGen :: (MonadRandom m) => Playground -> V.Vector Word64Genome -> m (V.Vector Word64Genome)
 mkNextGen Playground{..} genomes = do
   -- Leave the best one
   let best = V.maximumBy (compare `on` assess) genomes
@@ -143,14 +146,14 @@ mkNextGen Playground{..} genomes = do
     [father, mother] <- replicateM 2 (select genomes)
     crossover father mother crossoverRate
   -- TODO: Very bad performance
-  let offsprings = (V.fromList $ join $ map (\(x, y) -> [x, y]) offspringPairs) `V.snoc` best
+  let offsprings = V.fromList (join $ map (\(x, y) -> [x, y]) offspringPairs) `V.snoc` best
   V.mapM (`mutate` mutateRate) offsprings
 
 main :: IO ()
 main = do
   let playground = Playground {
-    crossoverRate = 0.8,
-    mutateRate = 0.2,
+    crossoverRate = 0.5,
+    mutateRate = 0.3,
     maxPopulation = 800,
     maxGens = 500
     }
