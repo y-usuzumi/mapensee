@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- 遗传算法
 -- 目标：求解z = (0.5-(sin(sqrt(x**2+y**2))**2-0.5)/(1+(0.001*(x**2+y**2))**2))的最大值
@@ -8,13 +9,15 @@
 
 import Data.Bits
 import Data.List
+import qualified Data.Vector as V
 import Data.STRef
 import Control.Monad
+import Control.Monad.Loops
 import Control.Monad.Random
 import Control.Monad.ST
 
 data Gene dtype where
-  MkGene :: (FiniteBits dtype) => dtype -> Gene dtype
+  MkGene :: (FiniteBits dtype, Bounded dtype) => dtype -> Gene dtype
 
 deriving instance Show (dtype) => Show (Gene dtype)
 
@@ -66,17 +69,54 @@ mutate MkGenome{..} prob = do
   newGeneY <- if prob >= rnd1 then mutateGene geneY else return geneY
   return MkGenome { geneX=newGeneX, geneY=newGeneY }
 
-genomeToCoord :: Genome dtype -> (Int, Int)
+-- 以下是专门用于求解本问题的非通用代码
+
+type IntGene = Gene Int
+type IntGenome = Genome Int
+
+genomeToCoord :: IntGenome -> (Double, Double)
 genomeToCoord MkGenome {..} =
   (geneToAxis geneX, geneToAxis geneY)
   where
-    geneToAxis (MkGene d) = if d < 0 then (d / minBound * 10) else (d / maxBound * 10)
+    geneToAxis :: IntGene -> Double
+    geneToAxis (MkGene d) = let
+      numD = fromIntegral d
+      -- TODO: 不太理解为什么一定要加类型限定
+      numMinBound = fromIntegral (minBound :: Int)
+      numMaxBound = fromIntegral (maxBound :: Int)
+      in
+        if d < 0 then -numD / numMinBound * 10 else numD / numMaxBound * 10
 
-assessmentFunction :: Genome dtype -> Int
-assessmentFunction genome = let
+assess :: IntGenome -> Double
+assess genome = let
   (x, y) = genomeToCoord genome
   in
   (0.5 - (sin (sqrt (x**2 + y**2))**2 - 0.5) / (1 + (0.001 * (x**2 + y**2)**2)))
+
+-- 自动生成原始人口
+populate :: forall m. (MonadRandom m) => Int -> m V.Vector IntGenome
+populate num =
+  replicateM num populateOne
+  where
+    populateOne :: m IntGenome
+    populateOne = do
+      [gx, gy] <- replicateM 2 $ getRandomR (minBound, maxBound)
+      return MkGenome {geneX=MkGene gx, geneY=MkGene gy}
+
+-- Check it out with map genomeToCoord <$> populate 3 :)
+
+select :: (MonadRandom m) => V.Vector IntGenome -> m IntGenome
+select genomes = do
+  let assessments = V.map assess genomes
+  thres <- getRandomR (0, sum assessments)
+  return (pick thres genomes)
+  where
+    pick :: Double -> Double -> V.Vector IntGenome -> V.Vector Double -> IntGenome
+    pick thres curr genomes assessments = runST $ do
+      {
+        
+      } untilM $
+      
 
 main :: IO ()
 main = undefined
