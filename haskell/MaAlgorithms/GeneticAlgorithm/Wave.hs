@@ -17,6 +17,7 @@ import Data.IORef
 import Data.List
 import Data.STRef
 import qualified Data.Vector as V
+import qualified Data.Vector.Mutable as MV
 import Data.Word
 
 -- 基因类型
@@ -110,15 +111,15 @@ populate num =
 
 -- Check it out with map genomeToCoord <$> populate 3 :)
 
-select :: (MonadRandom m) => V.Vector Word64Genome -> m Word64Genome
-select genomes = do
+select :: (MonadRandom m) => V.Vector Word64Genome -> Int -> m (V.Vector Word64Genome)
+select genomes num = do
   let assessments = V.map assess genomes
-  thres <- getRandomR (0, sum assessments)
-  return (pick thres genomes assessments)
+  thres <- fmap V.fromList $ take num <$> getRandomRs (0, sum assessments)
+  let gapairs = V.zip genomes assessments
+  return $ V.map (`pick` gapairs) thres
   where
-    pick :: Double -> V.Vector Word64Genome -> V.Vector Double -> Word64Genome
-    pick thres genomes assessments = runST $ do
-      let gapairs = V.zip genomes assessments
+    pick :: Double -> V.Vector (Word64Genome, Double) -> Word64Genome
+    pick thres gapairs = runST $ do
       idxRef <- newSTRef 0
       currRef <- newSTRef 0.0
       (_, genome) <- iterateUntil ((> thres) . fst) $ do
@@ -140,23 +141,40 @@ data Playground = Playground {
 
 mkNextGen :: (MonadRandom m) => Playground -> V.Vector Word64Genome -> m (V.Vector Word64Genome)
 mkNextGen Playground{..} genomes = do
-  -- Leave the best one
+  -- Retain the best one, drop others
   let best = V.maximumBy (compare `on` assess) genomes
-  offspringPairs <- replicateM (maxPopulation `quot` 2 - 1) $ do
-    [father, mother] <- replicateM 2 (select genomes)
-    crossover father mother crossoverRate
-  -- TODO: Very bad performance
-  let offsprings = V.fromList (join $ map (\(x, y) -> [x, y]) offspringPairs) `V.snoc` best
-  V.mapM (`mutate` mutateRate) offsprings
+  candidates <- select genomes maxPopulation
+  bpc <- batchPairCrossover candidates
+  return $ V.init bpc `V.snoc` best
+  where
+    batchPairCrossover :: (MonadRandom m) => V.Vector Word64Genome -> m (V.Vector Word64Genome)
+    batchPairCrossover candidates = do
+      offspringPairs <- V.mapM (\idx -> crossover (candidates V.! idx) (candidates V.! (idx+1)) crossoverRate) (V.fromList [0,2..maxPopulation - 2])
+      return $ V.create $ do
+        v <- MV.new maxPopulation
+        idxRef <- newSTRef 0
+        _ <- iterateWhile (< maxPopulation `quot` 2) (
+          do
+            idx <- readSTRef idxRef
+            let (os1, os2) = offspringPairs V.! idx
+            MV.write v (2*idx) os1
+            MV.write v (2*idx+1) os2
+            modifySTRef' idxRef (+1)
+            return (idx+1)
+          )
+        return v
+
+defaultPlayground :: Playground
+defaultPlayground = Playground {
+    crossoverRate = 0.5,
+    mutateRate = 0.3,
+    maxPopulation = 1600,
+    maxGens = 1000
+    }
 
 main :: IO ()
 main = do
-  let playground = Playground {
-    crossoverRate = 0.5,
-    mutateRate = 0.3,
-    maxPopulation = 800,
-    maxGens = 500
-    }
+  let playground = defaultPlayground
   initialGen <- populate $ maxPopulation playground
   genRef <- newIORef initialGen
   idxRef <- newIORef 0
