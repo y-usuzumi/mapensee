@@ -43,23 +43,34 @@ selectRandomRange d = do
 
 crossoverGene :: (MonadRandom m, Bounded dtype) => Gene dtype -> Gene dtype -> m (Gene dtype, Gene dtype)
 crossoverGene (MkGene father) (MkGene mother) = do
+  -- 选择交叉区域
   (left, right) <- selectRandomRange father
+  -- 交叉区域之外的部分置0作为掩码
   let mask = shiftR (shiftL maxBound (left + finiteBitSize father - right - 1)) left
+  -- 反掩码
   let counterMask = complement mask
   return (MkGene (father .&. counterMask .|. mother .&. mask), MkGene (mother .&. counterMask .|. father .&. mask))
 
 
-crossover :: (MonadRandom m, Bounded dtype) => Genome dtype -> Genome dtype -> Rate -> m (Genome dtype, Genome dtype)  -- Crossover makes two offsprings from two parents
+crossover :: (MonadRandom m, Bounded dtype) => Genome dtype -> Genome dtype -> Rate -> m (Genome dtype, Genome dtype)
 crossover father mother prob = do
-  rnd <- getRandomR (0.0, 1.0)
-  if prob >= rnd then
-    do
-      let (fx, fy) = (geneX father, geneY father)
-      let (mx, my) = (geneX mother, geneY mother)
-      (fx', mx') <- crossoverGene fx mx
-      (fy', my') <- crossoverGene fy my
-      return (MkGenome fx' fy', MkGenome mx' my')
-    else return (father, mother)
+  -- 交叉并不是一定会发生（TODO: 若一定会发生，对结果有何影响？）
+  [rndX, rndY] <- take 2 <$> getRandomRs (0.0, 1.0)
+  -- 分别对geneX和geneY应用交叉规则
+  do
+    (fx', mx') <- let (fx, mx) = (geneX father, geneX mother)
+                  in
+                    if prob > rndX then
+                      crossoverGene fx mx
+                    else
+                      return (fx, mx)
+    (fy', my') <- let (fy, my) = (geneY father, geneY mother)
+                  in
+                    if prob > rndY then
+                      crossoverGene fy my
+                    else
+                      return (fy, my)
+    return (MkGenome fx' fy', MkGenome mx' my')
 
 mutateGene :: (MonadRandom m, Bounded dtype) => Gene dtype -> m (Gene dtype)
 mutateGene (MkGene gene) = do
@@ -72,9 +83,10 @@ mutateGene (MkGene gene) = do
 
 mutate :: (MonadRandom m, Bounded dtype) => Genome dtype -> Rate -> m (Genome dtype)
 mutate MkGenome{..} prob = do
-  [rnd0, rnd1] <- take 2 <$> getRandomRs (0.0, 1.0)
-  newGeneX <- if prob >= rnd0 then mutateGene geneX else return geneX
-  newGeneY <- if prob >= rnd1 then mutateGene geneY else return geneY
+  -- 变异也并不是一定会发生（TODO: 若一定会发生，对结果有何影响？）
+  [rndX, rndY] <- take 2 <$> getRandomRs (0.0, 1.0)
+  newGeneX <- if prob >= rndX then mutateGene geneX else return geneX
+  newGeneY <- if prob >= rndY then mutateGene geneY else return geneY
   return MkGenome { geneX=newGeneX, geneY=newGeneY }
 
 -- 以下是专门用于求解本问题的非通用代码
@@ -111,15 +123,18 @@ populate num =
 
 -- Check it out with map genomeToCoord <$> populate 3 :)
 
+-- 太啰嗦了，还有待改进
 select :: (MonadRandom m) => V.Vector Word64Genome -> Int -> m (V.Vector Word64Genome)
 select genomes num = do
   let assessments = V.map assess genomes
+  -- 生成n个随机数，用于选择n个交叉候选个体（一直不知道怎么在runST中使用随机数，只能在这里生成）
   thres <- fmap V.fromList $ take num <$> getRandomRs (0, sum assessments)
   let gapairs = V.zip genomes assessments
   return $ V.map (`pick` gapairs) thres
   where
     pick :: Double -> V.Vector (Word64Genome, Double) -> Word64Genome
     pick thres gapairs = runST $ do
+      -- 计算累加评估结果
       idxRef <- newSTRef 0
       currRef <- newSTRef 0.0
       (_, genome) <- iterateUntil ((> thres) . fst) $ do
@@ -133,19 +148,23 @@ select genomes num = do
       return genome
 
 data Playground = Playground {
-  crossoverRate :: Double,
-  mutateRate :: Double,
-  maxPopulation :: Int,
-  maxGens :: Int
+  crossoverRate :: Double,  -- 交叉概率
+  mutateRate :: Double,  -- 变异概率
+  maxPopulation :: Int,  -- 最大个体数
+  maxGens :: Int  -- 最大世代数
   }
 
 mkNextGen :: (MonadRandom m) => Playground -> V.Vector Word64Genome -> m (V.Vector Word64Genome)
-mkNextGen Playground{..} genomes = do
-  -- Retain the best one, drop others
+mkNextGen Playground {..} genomes = do
+  -- 最优个体一定会保留
   let best = V.maximumBy (compare `on` assess) genomes
+  -- 选取参与交叉的个体
   candidates <- select genomes maxPopulation
-  bpc <- batchPairCrossover candidates
-  return $ V.init bpc `V.snoc` best
+  -- 交叉得到与最大个体数相同的新个体数
+  offsprings <- batchPairCrossover candidates
+  -- 进行变异
+  mutatedOffsprings <- V.mapM (`mutate` mutateRate) offsprings
+  return $ V.init mutatedOffsprings `V.snoc` best
   where
     batchPairCrossover :: (MonadRandom m) => V.Vector Word64Genome -> m (V.Vector Word64Genome)
     batchPairCrossover candidates = do
@@ -169,7 +188,7 @@ defaultPlayground = Playground {
     crossoverRate = 0.5,
     mutateRate = 0.3,
     maxPopulation = 1600,
-    maxGens = 1000
+    maxGens = 300
     }
 
 main :: IO ()
