@@ -1,9 +1,9 @@
 using System;
-using System.Runtime.InteropServics;
+using System.Runtime.InteropServices;
 
 namespace HelloWorld
 {
-    class Main
+    class HelloWorld
     {
         [DllImport("HelloWorld.so", CallingConvention=CallingConvention.Cdecl)]
         private static extern void hs_init(IntPtr argc, IntPtr arv);
