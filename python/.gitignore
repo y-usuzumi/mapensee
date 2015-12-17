@@ -1,0 +1,20 @@
+*~
+*.py[cdo]
+\#*\#
+.\#*
+**/__pycache__
+.projectile
+**/test-reports
+*.swp
+
+# Code coverage
+htmlcov/
+.coverage
+
+# IPython Notebook
+*.ipynb
+
+# setuptools, pip, egg
+build/
+dist/
+*.egg-info/
