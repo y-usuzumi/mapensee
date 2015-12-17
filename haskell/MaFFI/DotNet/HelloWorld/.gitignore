@@ -1,0 +1,3 @@
+*.exe
+*.so
+*_stub.h
