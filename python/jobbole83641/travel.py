@@ -13,10 +13,10 @@ class Travel(object):
         self.matrix = copy.deepcopy(matrix)
         self.height = len(self.matrix)
         self.width = len(self.matrix[0])
-        self.record = []
         self.pieds = []
-        self.beatme = 1e10
-        for i in xrange(self.height):
+        self.beatme = None
+        self.beatmesteps = None
+        for _ in xrange(self.height):
             self.pieds.append([1e10]*self.width)
 
     def get_pos(self, pos):
@@ -28,12 +28,14 @@ class Travel(object):
 
     def travel(self):
         pos = (0, 0)
-        return self._travel_direction('right', [], 0, (0, -1))
+        self._travel_direction('right', [], [], 0, (0, -1))
 
-    def _travel_direction(self, direction, record, weight, pos):
+    def _travel_direction(self, direction, steps, record, weight, pos):
         record = copy.copy(record)
+        steps = copy.copy(steps)
         pos_diff = self._pos_map[direction]
         pos = (pos[0] + pos_diff[0], pos[1] + pos_diff[1])
+        steps.append(pos)
         step_weight = self.get_pos(pos)
         if step_weight is None:
             return None
@@ -43,27 +45,23 @@ class Travel(object):
             return None
         if self.pieds[pos[0]][pos[1]] < weight:
             return None
-        self.pieds[pos[0]][pos[1]] = weight
         if pos == (self.height - 1, self.width - 1):
-            self.beatme = None
-        ret = None
-        retr = self._travel_direction('right', record, weight, pos)
-        print("RETR:" + str(retr))
-        if retr is not None:
-            ret = retr
-        retd = self._travel_direction('down', record, weight, pos)
-        print("RETD:" + str(retd))
-        if retd is not None:
-            ret = retd
-        retl = self._travel_direction('left', record, weight, pos)
-        print("RETL:" + str(retl))
-        if retl is not None:
-            ret = retl
-        retu = self._travel_direction('up', record, weight, pos)
-        print("RETU:" + str(retu))
-        if retu is not None:
-            ret = retu
-        return ret
+            if self.pieds[pos[0]][pos[1]] > weight:
+                self.beatme = record
+                self.beatmesteps = steps
+        self.pieds[pos[0]][pos[1]] = weight
+        self._travel_direction('right', steps, record, weight, pos)
+        self._travel_direction('down', steps, record, weight, pos)
+        self._travel_direction('left', steps, record, weight, pos)
+        self._travel_direction('up', steps, record, weight, pos)
+
+    def pretty_print(self):
+        matrix = copy.deepcopy(self.matrix)
+        for cell in self.beatmesteps:
+            matrix[cell[0]][cell[1]] = "."
+
+        for row in matrix:
+            print("[%s]" % " ".join(map(str, row)))
 
 
 matrix = [
@@ -77,4 +75,6 @@ matrix = [
 ]
 
 travel = Travel(matrix)
-print(travel.travel())
+travel.travel()
+# print(travel.beatme)
+travel.pretty_print()
