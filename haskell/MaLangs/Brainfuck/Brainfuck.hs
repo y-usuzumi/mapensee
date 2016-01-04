@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Brainfuck
     ( executeString
@@ -108,24 +109,52 @@ executeString code input = let
     runVM vm
 
 getInstr :: VM -> Maybe Instruction
-getInstr vm = instrs ^? ix instrPtr
+getInstr vm@VM{..} = instrs ^? ix instrPtr
   where
-    instrs = vmInstrs vm
-    instrPtr = vmInstrPtr vm
+    instrs = vmInstrs
+    instrPtr = vmInstrPtr
 
 getData :: VM -> Int
-getData vm = fromMaybe 0 (mem ^? ix memPtr)
+getData vm@VM{..} = fromMaybe 0 (mem ^? ix memPtr)
   where
-    mem = vmMem vm
-    memPtr = vmMemPtr vm
+    mem = vmMem
+    memPtr = vmMemPtr
+
+setData :: VM -> (Int -> Int) -> VM
+setData vm@VM{..} f = let
+  mem = compensateMemory vmMem (vmMemPtr + 1)
+  newMem = take vmMemPtr mem ++ [raw $ unraw $ f (mem !! vmMemPtr)] ++ drop (vmMemPtr + 1) mem
+  in
+    vm {vmMem = newMem}
 
 nextInstr :: VM -> VM
-nextInstr vm = case getInstr vm of
-  Just JMPZ -> undefined
-  Just JMPNZ -> undefined
-  _ -> vm {vmInstrPtr=vmInstrPtr vm+1}
+nextInstr vm = let
+  instrs = vmInstrs vm
+  instrPtr = vmInstrPtr vm
+  in
+    case getInstr vm of
+    Just JMPZ -> vm {vmInstrPtr = if getData vm == 0 then jmp instrs instrPtr else instrPtr+1}
+    Just JMPNZ -> vm {vmInstrPtr = if getData vm /= 0 then jmp instrs instrPtr else instrPtr-1}
+    _ -> vm {vmInstrPtr=instrPtr+1}
 
 runVM :: VM -> Maybe String
-runVM vm = case getInstr vm of
-    Just PINC -> runVM (vm {vmMemPtr=vmMemPtr vm+1})
-    Just PDEC -> runVM (vm {vmMemPtr=vmMemPtr vm-1})
+runVM vm@VM{..} = let
+  instr = getInstr vm
+  newVM = nextInstr vm
+  in
+  case getInstr vm of
+    Just PINC -> runVM (newVM {vmMemPtr=vmMemPtr+1})
+    Just PDEC -> runVM (newVM {vmMemPtr=vmMemPtr-1})
+    Just INCR -> runVM $ setData newVM (+1)
+    Just DECR -> runVM $ setData newVM (subtract 1)
+    Just READ -> let
+      (newIn, newMem) = accept vmIn vmMemPtr vmMem
+      in
+        runVM (vm {vmIn=newIn, vmMem=newMem})
+    Just SPIT -> let
+      newOut = spit vmOut vmMemPtr vmMem
+      in
+        runVM (vm {vmOut=newOut})
+    Just JMPZ -> runVM newVM
+    Just JMPNZ -> runVM newVM
+    Nothing -> Just vmOut
