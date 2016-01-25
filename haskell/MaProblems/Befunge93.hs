@@ -89,16 +89,16 @@ outputS str = state $ \vm@VM {..} -> ((), vm { outputBuf = T.append outputBuf (T
 move :: State VM ()
 move = state $ \vm@VM {..} -> let
   diff = case currDirection of
-    U -> (-1, 0)
-    D -> (1, 0)
-    L -> (0, -1)
-    R -> (0, 1)
+    U -> (0, -1)
+    D -> (0, 1)
+    L -> (-1, 0)
+    R -> (1, 0)
     _ -> error "No such direction"
   in
     ((), vm { instrptr = applyDiff instrptr diff})
   where
     applyDiff :: Pointer -> Pointer -> Pointer
-    applyDiff (l1, l2) (d1, d2) = (l1+d1, l2+d2)
+    applyDiff (x, y) (dx, dy) = (x+dx, y+dy)
 
 setDirection :: Instr -> State VM ()
 setDirection direction = state $ \vm@VM {..} -> ((), vm { currDirection = direction })
@@ -109,18 +109,18 @@ setDirection direction = state $ \vm@VM {..} -> ((), vm { currDirection = direct
 
 getInstruction :: State VM Instr
 getInstruction = state $ \vm@VM {..} -> let
-  (a1, a2) = instrptr
+  (x, y) = instrptr
   in
-    (instrs V.! a1 UV.! a2, vm)
+    (instrs V.! y UV.! x, vm)
 
 getInstructionAt :: Pointer -> State VM Instr
-getInstructionAt (a1, a2) = state $ \vm@VM {..} -> (instrs V.! a1 UV.! a2, vm)
+getInstructionAt (x, y) = state $ \vm@VM {..} -> (instrs V.! y UV.! x, vm)
 
 setInstructionAt :: Pointer -> Instr -> State VM ()
-setInstructionAt pos instr = state $ \vm@VM {..} -> ((), vm { instrs = runST $ do
-  let v = instrs V.! fst pos
+setInstructionAt (x, y) instr = state $ \vm@VM {..} -> ((), vm { instrs = runST $ do
+  let v = instrs V.! y
   v' <- UV.thaw v
-  UMV.write v' (snd pos) instr
+  UMV.write v' x instr
   _ <- UV.freeze v'
   return instrs
   })
@@ -230,7 +230,7 @@ runInstr instr
         y <- popStackSafe
         x <- popStackSafe
         instr <- getInstructionAt (x, y)
-        pushStack (ord instr)
+        pushStack $ ord instr
         move
       NoOp -> move
       End -> return ()
