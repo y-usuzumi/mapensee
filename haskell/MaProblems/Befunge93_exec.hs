@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms   #-}
 {-# LANGUAGE RecordWildCards   #-}
 
-module Befunge93 where
+module Main where
 
 import           Control.Monad
 import           Control.Monad.Loops
