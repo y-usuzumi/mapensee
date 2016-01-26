@@ -2,7 +2,7 @@
 {-# LANGUAGE PatternSynonyms   #-}
 {-# LANGUAGE RecordWildCards   #-}
 
-module Befunge93 where
+module Main where
 
 import           Control.Monad
 import           Control.Monad.Loops
@@ -14,6 +14,8 @@ import qualified Data.Vector                 as V
 import qualified Data.Vector.Mutable         as MV
 import qualified Data.Vector.Unboxed         as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
+import           Debug.Trace
+import           System.Environment
 import qualified System.Random               as R
 
 pattern Add = '+'
@@ -265,3 +267,9 @@ interpret stdGen str = let
   in
     T.unpack $ outputBuf $ execState runInstrs vm
 
+main :: IO ()
+main = do
+  (fn:_) <- getArgs
+  source <- readFile fn
+  sg <- R.getStdGen
+  putStrLn $ interpret sg source
