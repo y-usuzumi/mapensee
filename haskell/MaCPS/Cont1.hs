@@ -1,6 +1,8 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+module Cont1 where
+
 {-
 论为什么笨人不适合学习Haskell...
 
@@ -152,6 +154,7 @@ cont = Cont
 
 {-
 液！
+
 Monad实例信手拈来（。。。吧）
 -}
 
@@ -164,7 +167,6 @@ instance Monad (Cont r) where
   l >>= f = cont $ \k ->
     runCont l $ \a -> runCont (f a) k
 
-
 {-
 我恨你世界！
 -}
@@ -173,3 +175,8 @@ main :: IO ()
 main = do
   return ()
   return ()  -- 为什么要写两个呢？因为要让flycheck别他妈的警告了
+
+
+{-
+好的，剩下u时间交给Cont2.hs
+-}
