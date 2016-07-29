@@ -56,7 +56,12 @@ mutate PlayGround {..} g = do
   where
     _mutate :: MonadRandom m => Gene -> m Gene
     _mutate (MkGene gene) = do
+      -- l <- shuffle [1..squareSize * squareSize]
+      -- return $ MkGene (V.fromList l)
       (l, r) <- selectRandomRange (V.length gene)
+      let (fl, frem) = V.splitAt l gene
+          (fm, fr) = V.splitAt (r-l) frem
+      return $ MkGene $ fl V.++ V.reverse fm V.++ fr
       return $ MkGene (gene V.// [(l, gene V.! r), (r, gene V.! l)])
 
 
@@ -96,7 +101,7 @@ select :: MonadRandom m => PlayGround -> Generation -> m Generation
 select PlayGround {..} genes = do
   let assessments = V.map assess genes
   thres <- fmap V.fromList $ take maxPopulation <$> getRandomRs (0, sum assessments)
-  let gapairs = V.zip genes assessments
+  let gapairs = V.zip genes (normalize assessments)
   return $ V.map (`pick` gapairs) thres
   where
     pick :: Double -> V.Vector (Gene, Double) -> Gene
@@ -112,9 +117,28 @@ select PlayGround {..} genes = do
         writeSTRef currRef newCurr
         return (newCurr, genome)
       return genome
+    normalize :: V.Vector Double -> V.Vector Double
+    normalize = id
 
 assess :: Gene -> Double
 assess (MkGene gene) = let
+  squareSize = round $ (sqrt (fromIntegral $ V.length gene)) :: Int
+  geneL = V.toList gene
+  rowCols = chunksOf squareSize geneL
+  colRows = transpose rowCols
+  sumRows = map sum rowCols
+  sumCols = map sum colRows
+  sumDiags = map sum [ every (squareSize+1) geneL
+                     , init $ every (squareSize-1) (drop (squareSize-1) geneL)
+                     ]
+  in
+    1 / (stdDev (V.fromList $ map fromIntegral (sumRows ++ sumCols ++ sumDiags)) + fromIntegral (squareSize * squareSize))
+  where
+    every _ [] = []
+    every n l@(x:_) = x:every n (drop n l)
+
+sd :: Gene -> Double
+sd (MkGene gene) = let
   squareSize = round (sqrt (fromIntegral $ V.length gene) :: Double)
   geneL = V.toList gene
   rowCols = chunksOf squareSize geneL
@@ -125,7 +149,7 @@ assess (MkGene gene) = let
                      , init $ every (squareSize-1) (drop (squareSize-1) geneL)
                      ]
   in
-    1 / (stdDev (V.fromList $ map fromIntegral (sumRows ++ sumCols ++ sumDiags)) + 0.0001)
+    stdDev (V.fromList $ map fromIntegral (sumRows ++ sumCols ++ sumDiags))
   where
     every _ [] = []
     every n l@(x:_) = x:every n (drop n l)
@@ -159,24 +183,26 @@ main :: IO ()
 main = do
   (sizeStr:_) <- getArgs
   let playGround = PlayGround { crossoverRate = 0.5
-                              , mutateRate = 0.5
+                              , mutateRate = 0.8
                               , maxPopulation = 1000
                               , maxGens = 500
                               , squareSize = read sizeStr :: Int
                               }
+      ss = squareSize playGround
   initialGen <- populate playGround
   genRef <- newIORef initialGen
   idxRef <- newIORef 0
-  (_, lastGen) <- iterateUntil ((>= maxGens playGround) . fst) (
+  (_, lastGen, _) <- iterateUntil (\(_, _, best) -> best == 1.0 / ss / ss) (
     do
       idx <- readIORef idxRef
       gen <- readIORef genRef
-      -- putStrLn $ "Gen " ++ show (idx + 1) ++ ":"
-      -- print $ (sum (V.map assess gen) / fromIntegral (V.length gen))
+      putStrLn $ "Gen " ++ show (idx + 1) ++ ":"
+      let best = V.maximum (V.map assess gen)
+      putStrLn $ "Best: " ++ show best
       nextGen <- mkNextGen playGround gen
       writeIORef genRef nextGen
       modifyIORef idxRef (+1)
-      return (idx, nextGen)
+      return (idx, nextGen, best)
     )
   let bestChoice = V.maximumBy (compare `on` assess) lastGen
   putStrLn $ "Best choice assessed as: " ++ show (assess bestChoice)
