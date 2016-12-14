@@ -21,7 +21,10 @@ source :: String
 source = [str|
 import os
 
-print os.listdir('/home/kj')
+def add(a, b):
+    return a + b
+
+print "3 + 4 = %d" % add(3, 4)
 |]
 
 main = do
