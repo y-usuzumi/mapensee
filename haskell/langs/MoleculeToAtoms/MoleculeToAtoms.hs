@@ -30,6 +30,7 @@ tokenizeName _ = Nothing
 
 tokenizeNumber :: TokenizeFunc
 tokenizeNumber xs = let
+  
   num = takeWhile (`elem` ['0'..'9']) xs
   in
   if num == "" then Nothing else Just (Number (read num), drop (length num) xs)

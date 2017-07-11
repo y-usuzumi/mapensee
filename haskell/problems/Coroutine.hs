@@ -7,11 +7,10 @@ module Coroutine where
 import Control.Monad (ap, forever)
 
 newtype Coroutine r u d a = Coroutine { runCoroutine :: (Command r u d a -> r) -> r } deriving (Functor)
-data Command r u d a =
-  Done a
-  | Out d (Coroutine r u d a)
-  | In (u -> Coroutine r u d a)
-  deriving Functor
+data Command r u d a = Done a
+                     | Out d (Coroutine r u d a)
+                     | In (u -> Coroutine r u d a)
+                     deriving Functor
 
 -- Useful alias
 apply :: Coroutine r u d a -> (Command r u d a -> r) -> r
