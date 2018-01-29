@@ -1,0 +1,21 @@
+[package]
+name = "tokio-playground"
+version = "0.1.0"
+authors = ["Yukio Usuzumi <anohigisavay@gmail.com>"]
+
+[dependencies]
+bytes = "*"
+byteorder = "*"
+futures = "*"
+tokio-io = "*"
+tokio-core = "*"
+tokio-proto = "*"
+tokio-service = "*"
+
+[[bin]]
+name = "itr-server"
+path = "bin/itr-server/main.rs"
+
+[[bin]]
+name = "itr-client"
+path = "bin/itr-client/main.rs"
