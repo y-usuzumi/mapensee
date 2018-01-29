@@ -1,7 +1,15 @@
 use bytes::{BytesMut, BufMut};
+use byteorder::{LittleEndian};
 
-trait Encoder {
+pub trait Encoder {
     fn encode_into(&mut self, buf: &mut BytesMut);
+}
+
+impl Encoder for String {
+    fn encode_into(&mut self, buf: &mut BytesMut) {
+        buf.put_u32::<LittleEndian>(self.len() as u32);
+        buf.extend(self.as_bytes());
+    }
 }
 
 pub enum Emo {
@@ -13,17 +21,17 @@ pub enum Emo {
 
 impl Encoder for Emo {
     fn encode_into(&mut self, buf: &mut BytesMut) {
-        match *self {
-            Emo::Nop => {
+        match self {
+            &mut Emo::Nop => {
                 buf.put_u8(0);
             },
-            Emo::Laugh => {
+            &mut Emo::Laugh => {
                 buf.put_u8(1);
             },
-            Emo::Cry => {
+            &mut Emo::Cry => {
                 buf.put_u8(2);
             },
-            Emo::Custom(d) => {
+            &mut Emo::Custom(ref d) => {
                 buf.put_u8(10);
                 buf.extend(d)
             }
@@ -41,9 +49,10 @@ pub enum Message {
     Compound(Vec<Message>)  // 20
 }
 
-impl Message {
-    pub fn header_code(&self) -> u8 {
-        match *self {
+impl Encoder for Message {
+    fn encode_into(&mut self, buf: &mut BytesMut) {
+        // Type code
+        buf.put_u8(match *self {
             Message::Nop => 0,
             Message::Open => 1,
             Message::Close => 2,
@@ -51,6 +60,18 @@ impl Message {
             Message::Emo(_) => 11,
             Message::Image(_, _) => 12,
             Message::Compound(_) => 20
+        });
+        match *self {
+            Message::Text(ref mut t) => t.encode_into(buf),
+            Message::Emo(ref mut e) => e.encode_into(buf),
+            Message::Image(t, ref d) => {
+                buf.put_u8(t);
+                buf.extend(d);
+            },
+            Message::Compound(_) => {
+                panic!("Not implemented yet")
+            },
+            _ => {}
         }
     }
 }
