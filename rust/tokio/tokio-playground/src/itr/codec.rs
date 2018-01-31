@@ -19,6 +19,7 @@ impl Decoder for ItrCodec {
     type Item = Message;
     type Error = error::Error;
     fn decode(&mut self, buf: &mut BytesMut) -> result::Result<Option<Self::Item>> {
+        // TODO
         Ok(Some(Message::Nop))
     }
 }

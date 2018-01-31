@@ -49,7 +49,7 @@
 ///               The above rule is also applied recursively.
 
 use bytes::{BytesMut, BufMut};
-use byteorder::{LittleEndian};
+use byteorder::{BigEndian};
 
 const TEXT_SLICE_MAX_LENGTH: u32 = 0xfffffffe;
 const TEXT_SLICE_MAX_LENGTH_S: usize = TEXT_SLICE_MAX_LENGTH as usize;
@@ -66,16 +66,17 @@ impl Encoder for str {
     fn encode_into(&mut self, buf: &mut BytesMut) {
         let len = self.len();
         if len > TEXT_SLICE_MAX_LENGTH_S {
-            buf.put_u32::<LittleEndian>(TEXT_OVERFLOW_FLAG);
+            buf.put_u32::<BigEndian>(TEXT_OVERFLOW_FLAG);
             buf.extend(self[..TEXT_SLICE_MAX_LENGTH_S-1].bytes());
             self[TEXT_SLICE_MAX_LENGTH_S..].encode_into(buf);
         } else {
-            buf.put_u32::<LittleEndian>(self.len() as u32);
+            buf.put_u32::<BigEndian>(self.len() as u32);
             buf.extend(self.as_bytes());
         }
     }
 }
 
+#[derive(Debug)]
 pub enum Emo {
     Nop,             // 0
     Laugh,           // 1
@@ -85,23 +86,24 @@ pub enum Emo {
 
 impl Encoder for Emo {
     fn encode_into(&mut self, buf: &mut BytesMut) {
-        match self {
-            &mut Emo::Nop => {
+        match *self {
+            Emo::Nop => {
                 buf.put_u8(0);
             },
-            &mut Emo::Laugh => {
+            Emo::Laugh => {
                 buf.put_u8(1);
             },
-            &mut Emo::Cry => {
+            Emo::Cry => {
                 buf.put_u8(2);
             },
-            &mut Emo::Custom(_) => {
+            Emo::Custom(_) => {
                 panic!("Not implemented yet");
             }
         }
     }
 }
 
+#[derive(Debug)]
 pub enum Message {
     Nop,                    // 0
     Text(String),           // 128
@@ -130,11 +132,21 @@ impl Encoder for Message {
             Message::Compound(ref mut msgs) => {
                 let len = msgs.len();
                 if len > COMPOUND_SLICE_MAX_LENGTH_S {
-                    buf.put_u8(COMPOUND_SLICE_MAX_LENGTH);
-                    panic!("TODO");
+                    let mut start = 0;
+                    let start_finish_point = len - COMPOUND_SLICE_MAX_LENGTH_S;
+                    while start < start_finish_point {
+                        buf.put_u8(COMPOUND_OVERFLOW_FLAG);
+                        for msg in &mut msgs[start..start+COMPOUND_SLICE_MAX_LENGTH_S] {
+                            msg.encode_into(buf);
+                        }
+                    }
+                    buf.put_u8((len - start) as u8);
+                    for msg in &mut msgs[start..] {
+                        msg.encode_into(buf);
+                    }
                 } else {
                     buf.put_u8(len as u8);
-                    for mut msg in msgs {
+                    for msg in msgs {
                         msg.encode_into(buf);
                     }
                 }
@@ -147,8 +159,71 @@ impl Encoder for Message {
 
 #[cfg(test)]
 mod tests {
+    use bytes::BytesMut;
+    use super::{Message, Emo, Encoder};
+
     #[test]
     fn bitwise_op() {
         assert_eq!(2u32.pow(8), 256);
+    }
+
+    #[test]
+    fn encode_text() {
+        let mut msg = Message::Text(String::from("Hello"));
+        {
+            let mut buf = BytesMut::new();
+            msg.encode_into(&mut buf);
+            // 1 byte type (Text: 128)
+            // 4 byte text length 0005
+            // 5 byte Hello
+            assert_eq!(&buf[..], b"\x80\x00\x00\x00\x05Hello");
+        }
+    }
+
+    #[test]
+    fn encode_emo() {
+        {
+            let mut msg = Message::Emo(Emo::Nop);
+            let mut buf = BytesMut::new();
+            msg.encode_into(&mut buf);
+            assert_eq!(&buf[..], b"\x82\x00");
+        }
+        {
+            let mut msg = Message::Emo(Emo::Laugh);
+            let mut buf = BytesMut::new();
+            msg.encode_into(&mut buf);
+            assert_eq!(&buf[..], b"\x82\x01");
+        }
+        {
+            let mut msg = Message::Emo(Emo::Cry);
+            let mut buf = BytesMut::new();
+            msg.encode_into(&mut buf);
+            assert_eq!(&buf[..], b"\x82\x02");
+        }
+        {  // TODO: Custom emo
+        }
+    }
+
+    #[test]
+    fn encode_img() {
+        // TODO
+    }
+
+    #[test]
+    fn encode_compound() {
+        let mut msg = Message::Compound(
+            vec![
+                Message::Text(String::from("Hello")),
+                Message::Emo(Emo::Laugh),
+                Message::Text(String::from("world!"))
+            ]
+        );
+        let mut buf = BytesMut::new();
+        msg.encode_into(&mut buf);
+        assert_eq!(&buf[..], b"\
+        \xfa\x03\
+        \x80\x00\x00\x00\x05Hello\
+        \x82\x01\
+        \x80\x00\x00\x00\x06world!");
     }
 }
