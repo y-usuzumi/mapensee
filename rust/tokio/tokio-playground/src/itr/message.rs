@@ -48,8 +48,10 @@
 ///               | the type-specific encoding of the remaining messages as a compound message |
 ///               The above rule is also applied recursively.
 
+use std::io::{Cursor, Read};
+use std::str;
 use bytes::{BytesMut, BufMut};
-use byteorder::{BigEndian};
+use byteorder::{BigEndian, ReadBytesExt};
 
 const TEXT_SLICE_MAX_LENGTH: u32 = 0xfffffffe;
 const TEXT_SLICE_MAX_LENGTH_S: usize = TEXT_SLICE_MAX_LENGTH as usize;
@@ -60,6 +62,10 @@ const COMPOUND_OVERFLOW_FLAG: u8 = 0xff;
 
 pub trait Encoder {
     fn encode_into(&mut self, buf: &mut BytesMut);
+}
+
+pub trait Decoder {
+    fn decode_from(buf: &BytesMut) -> Option<Self> where Self: Sized;
 }
 
 impl Encoder for str {
@@ -153,6 +159,34 @@ impl Encoder for Message {
             },
             _ => {}
         }
+    }
+}
+
+impl<'a> Decoder for &'a str {
+    fn decode_from(buf: &BytesMut) -> Option<Self> {
+        let mut cursor = Cursor::new(buf);
+        let ref mut result = &String::new();
+        loop {
+            let opt_len = cursor.read_u32::<BigEndian>();
+            match opt_len {
+                Ok(len) => {
+                    if len == TEXT_OVERFLOW_FLAG {
+                        let mut slice = [0; TEXT_SLICE_MAX_LENGTH_S];
+                        let _ = cursor.read(&mut slice);
+                        let s = str::from_utf8(&slice).unwrap();
+                        result.push_str(s);
+                    } else {
+                        let mut slice = vec![0; len as usize];
+                        let _ = cursor.read(&mut slice);
+                        let s = str::from_utf8(&slice).unwrap();
+                        result.push_str(s);
+                        break
+                    }
+                },
+                Err(_) => break
+            }
+        };
+        return Some(&result);
     }
 }
 
