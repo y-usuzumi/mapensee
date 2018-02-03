@@ -1,13 +1,7 @@
 use bytes::{BytesMut, BufMut};
 use byteorder::{BigEndian};
-use super::{
-    TEXT_OVERFLOW_FLAG,
-    TEXT_SLICE_MAX_LENGTH_S,
-    COMPOUND_OVERFLOW_FLAG,
-    COMPOUND_SLICE_MAX_LENGTH_S,
-    Message,
-    Emo
-};
+use super::consts;
+use super::{Message, Emo};
 
 pub trait Encoder {
     fn encode_into(&mut self, buf: &mut BytesMut);
@@ -16,10 +10,10 @@ pub trait Encoder {
 impl Encoder for String {
     fn encode_into(&mut self, buf: &mut BytesMut) {
         let len = self.len();
-        if len > TEXT_SLICE_MAX_LENGTH_S {
-            buf.put_u32::<BigEndian>(TEXT_OVERFLOW_FLAG);
-            buf.extend(self[..TEXT_SLICE_MAX_LENGTH_S-1].bytes());
-            String::from(&self[TEXT_SLICE_MAX_LENGTH_S..]).encode_into(buf);
+        if len > consts::TEXT_SLICE_MAX_LENGTH_S {
+            buf.put_u32::<BigEndian>(consts::TEXT_OVERFLOW_FLAG);
+            buf.extend(self[..consts::TEXT_SLICE_MAX_LENGTH_S-1].bytes());
+            String::from(&self[consts::TEXT_SLICE_MAX_LENGTH_S..]).encode_into(buf);
         } else {
             buf.put_u32::<BigEndian>(self.len() as u32);
             buf.extend(self.as_bytes());
@@ -31,11 +25,11 @@ impl Encoder for Message {
     fn encode_into(&mut self, buf: &mut BytesMut) {
         // Type code
         buf.put_u8(match *self {
-            Message::Nop => 0,
-            Message::Text(_) => 128,
-            Message::Emo(_) => 130,
-            Message::Image(_, _) => 140,
-            Message::Compound(_) => 250,
+            Message::Nop => consts::MESSAGE_NOP_TYPE_CODE,
+            Message::Text(_) => consts::MESSAGE_TEXT_TYPE_CODE,
+            Message::Emo(_) => consts::MESSAGE_EMO_TYPE_CODE,
+            Message::Image(_, _) => consts::MESSAGE_IMAGE_TYPE_CODE,
+            Message::Compound(_) => consts::MESSAGE_COMPOUND_TYPE_CODE,
         });
         match *self {
             Message::Text(ref mut t) => t.encode_into(buf),
@@ -46,12 +40,12 @@ impl Encoder for Message {
             },
             Message::Compound(ref mut msgs) => {
                 let len = msgs.len();
-                if len > COMPOUND_SLICE_MAX_LENGTH_S {
+                if len > consts::COMPOUND_SLICE_MAX_LENGTH_S {
                     let mut start = 0;
-                    let start_finish_point = len - COMPOUND_SLICE_MAX_LENGTH_S;
+                    let start_finish_point = len - consts::COMPOUND_SLICE_MAX_LENGTH_S;
                     while start < start_finish_point {
-                        buf.put_u8(COMPOUND_OVERFLOW_FLAG);
-                        for msg in &mut msgs[start..start+COMPOUND_SLICE_MAX_LENGTH_S] {
+                        buf.put_u8(consts::COMPOUND_OVERFLOW_FLAG);
+                        for msg in &mut msgs[start..start+consts::COMPOUND_SLICE_MAX_LENGTH_S] {
                             msg.encode_into(buf);
                         }
                     }
@@ -94,11 +88,6 @@ impl Encoder for Emo {
 mod tests {
     use bytes::BytesMut;
     use super::{Message, Emo, Encoder};
-
-    #[test]
-    fn bitwise_op() {
-        assert_eq!(2u32.pow(8), 256);
-    }
 
     #[test]
     fn encode_text() {

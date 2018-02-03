@@ -48,16 +48,10 @@
 ///               | the type-specific encoding of the remaining messages as a compound message |
 ///               The above rule is also applied recursively.
 
-const TEXT_SLICE_MAX_LENGTH: u32 = 0xfffffffe;
-const TEXT_SLICE_MAX_LENGTH_S: usize = TEXT_SLICE_MAX_LENGTH as usize;
-const TEXT_OVERFLOW_FLAG: u32 = 0xffffffff;
-const COMPOUND_SLICE_MAX_LENGTH: u8 = 0xfe;
-const COMPOUND_SLICE_MAX_LENGTH_S: usize = COMPOUND_SLICE_MAX_LENGTH as usize;
-const COMPOUND_OVERFLOW_FLAG: u8 = 0xff;
-
 mod encoder;
 mod decoder;
 pub mod error;
+mod consts;
 
 pub use self::encoder::Encoder;
 pub use self::decoder::Decoder;
