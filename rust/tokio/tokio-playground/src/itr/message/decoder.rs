@@ -1,6 +1,6 @@
 use std;
 use std::str;
-use std::io::{Cursor, Read};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 use bytes::{BytesMut};
 use byteorder::{BigEndian, ReadBytesExt};
 use super::{Message};
@@ -23,13 +23,15 @@ impl Decoder for String {
             match opt_len {
                 Ok(len) => {
                     if len == consts::TEXT_OVERFLOW_FLAG {
-                        let mut slice = [0; consts::TEXT_SLICE_MAX_LENGTH_S];
+                        let mut slice = vec![0; consts::TEXT_SLICE_MAX_LENGTH_S];
                         let _ = cursor.read(&mut slice);
                         let s = str::from_utf8(&slice).unwrap();
                         result.push_str(s);
                     } else {
                         let mut slice = vec![0; len as usize];
-                        let _ = cursor.read(&mut slice);
+                        if let Err(e) = cursor.read(&mut slice) {
+                            return Err(Error::IOError(e));
+                        }
                         let s = str::from_utf8(&slice).unwrap();
                         result.push_str(s);
                         break
@@ -83,7 +85,7 @@ mod tests {
             Err(_) => false
         });
         assert!(match msg.unwrap() {
-            Message::Text(s) => s == String::from("ITRE编码测试"),
+            Message::Text(s) => s == String::from("ITRE解码测试"),
             _ => false
         });
     }
