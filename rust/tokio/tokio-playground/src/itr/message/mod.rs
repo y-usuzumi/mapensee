@@ -26,7 +26,7 @@
 //!   Text:
 //!     <pre>
 //!         |Total text length|Text content|
-//!         | 4 bytes         | ...        |
+//!         | 2 bytes         | ...        |
 //!     </pre>
 //!     However, if the total text length is greater than 4294967294 (2^32-2),
 //!     the encoding result will be:

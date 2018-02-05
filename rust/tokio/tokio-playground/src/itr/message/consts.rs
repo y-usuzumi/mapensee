@@ -1,6 +1,6 @@
-pub const TEXT_SLICE_MAX_LENGTH: u32             = 0xfffffffe;
+pub const TEXT_SLICE_MAX_LENGTH: u16             = 0xfffe;
 pub const TEXT_SLICE_MAX_LENGTH_S: usize         = TEXT_SLICE_MAX_LENGTH as usize;
-pub const TEXT_OVERFLOW_FLAG: u32                = 0xffffffff;
+pub const TEXT_OVERFLOW_FLAG: u16                = 0xffff;
 pub const COMPOUND_SLICE_MAX_LENGTH: u8          = 0xfe;
 pub const COMPOUND_SLICE_MAX_LENGTH_S: usize     = COMPOUND_SLICE_MAX_LENGTH as usize;
 pub const COMPOUND_OVERFLOW_FLAG: u8             = 0xff;

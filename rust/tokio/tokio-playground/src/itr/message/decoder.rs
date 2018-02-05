@@ -1,6 +1,6 @@
 use std;
 use std::str;
-use std::io::{Cursor, Read, Seek, SeekFrom};
+use std::io::{Cursor, Read};
 use bytes::{BytesMut};
 use byteorder::{BigEndian, ReadBytesExt};
 use super::{Message, Emo};
@@ -19,7 +19,7 @@ impl Decoder for String {
         let mut cursor = Cursor::new(buf);
         let mut result = String::new();
         loop {
-            let opt_len = cursor.read_u32::<BigEndian>();
+            let opt_len = cursor.read_u16::<BigEndian>();
             match opt_len {
                 Ok(len) => {
                     if len == consts::TEXT_OVERFLOW_FLAG {
@@ -73,10 +73,23 @@ impl Decoder for Message {
                 Message::Emo(s)
             },
             consts::MESSAGE_TYPE_CODE_IMAGE => {
-                Message::Nop
+                panic!("Not implemented yet");
             },
             consts::MESSAGE_TYPE_CODE_COMPOUND => {
-                Message::Nop
+                let mut length = buf[0];
+                buf.advance(1);
+                let mut msgs = Vec::new();
+                while length == consts::COMPOUND_OVERFLOW_FLAG {
+                    for _ in 0..consts::COMPOUND_SLICE_MAX_LENGTH_S {
+                        msgs.push(try!(Self::decode_from(buf)));
+                    }
+                    length = buf[0];
+                    buf.advance(1);
+                }
+                for _ in 0..length {
+                    msgs.push(try!(Self::decode_from(buf)));
+                }
+                Message::Compound(msgs)
             },
             _ => return Err(Error::InvalidTypeCode(type_code))
         };
@@ -92,7 +105,7 @@ mod tests {
     #[test]
     fn decode_text() {
         let mut bm = BytesMut::from(
-            &b"\x80\x00\x00\x00\x10ITRE\xe8\xa7\xa3\xe7\xa0\x81\xe6\xb5\x8b\xe8\xaf\x95"[..]
+            &b"\x80\x00\x10ITRE\xe8\xa7\xa3\xe7\xa0\x81\xe6\xb5\x8b\xe8\xaf\x95"[..]
         );
         let msg = Message::decode_from(&mut bm);
         assert_eq!(
@@ -127,5 +140,26 @@ mod tests {
                 Message::Emo(Emo::Cry)
             );
         }
+    }
+
+    #[test]
+    fn decode_message() {
+        let mut bm = BytesMut::from(
+            &b"\xFA\x04\
+            \x80\x00\x10ITRE\xe8\xa7\xa3\xe7\xa0\x81\xe6\xb5\x8b\xe8\xaf\x95
+            \x82\x01
+            \x80\x00\x10ITRE\xe8\xa7\xa3\xe7\xa0\x81\xe6\xb5\x8b\xe8\xaf\x95
+            \x82\x02"[..]
+        );
+        let msg = Message::decode_from(&mut bm);
+        assert_eq!(
+            msg.unwrap(),
+            Message::Compound(vec![
+                Message::Text(String::from("ITRE解码测试")),
+                Message::Emo(Emo::Laugh),
+                Message::Text(String::from("ITRE解码测试")),
+                Message::Emo(Emo::Cry)
+            ])
+        );
     }
 }

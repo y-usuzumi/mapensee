@@ -11,11 +11,11 @@ impl Encoder for String {
     fn encode_into(&mut self, buf: &mut BytesMut) {
         let len = self.len();
         if len > consts::TEXT_SLICE_MAX_LENGTH_S {
-            buf.put_u32::<BigEndian>(consts::TEXT_OVERFLOW_FLAG);
-            buf.extend(self[..consts::TEXT_SLICE_MAX_LENGTH_S-1].bytes());
+            buf.put_u16::<BigEndian>(consts::TEXT_OVERFLOW_FLAG);
+            buf.extend(self[..consts::TEXT_SLICE_MAX_LENGTH_S].bytes());
             String::from(&self[consts::TEXT_SLICE_MAX_LENGTH_S..]).encode_into(buf);
         } else {
-            buf.put_u32::<BigEndian>(self.len() as u32);
+            buf.put_u16::<BigEndian>(self.len() as u16);
             buf.extend(self.as_bytes());
         }
     }
@@ -53,13 +53,12 @@ impl Encoder for Message {
         match *self {
             Message::Text(ref mut t) => t.encode_into(buf),
             Message::Emo(ref mut e) => e.encode_into(buf),
-            Message::Image(t, ref d) => {
-                buf.put_u8(t);
-                buf.extend(d);
+            Message::Image(_, _) => {
+                panic!("Not implemented yet");
             },
             Message::Compound(ref mut msgs) => {
                 let len = msgs.len();
-                if len > consts::COMPOUND_SLICE_MAX_LENGTH_S {
+                if len >= consts::COMPOUND_SLICE_MAX_LENGTH_S {
                     let mut start = 0;
                     let start_finish_point = len - consts::COMPOUND_SLICE_MAX_LENGTH_S;
                     while start < start_finish_point {
@@ -98,7 +97,7 @@ mod tests {
             // 1 byte type (Text: 128)
             // 4 byte text length 0005
             // 5 byte Hello
-            assert_eq!(&buf[..], b"\x80\x00\x00\x00\x05Hello");
+            assert_eq!(&buf[..], b"\x80\x00\x05Hello");
         }
     }
 
@@ -144,8 +143,8 @@ mod tests {
         msg.encode_into(&mut buf);
         assert_eq!(&buf[..], b"\
         \xfa\x03\
-        \x80\x00\x00\x00\x05Hello\
+        \x80\x00\x05Hello\
         \x82\x01\
-        \x80\x00\x00\x00\x06world!");
+        \x80\x00\x06world!");
     }
 }
