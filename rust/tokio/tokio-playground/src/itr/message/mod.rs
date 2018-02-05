@@ -73,7 +73,7 @@ mod consts;
 pub use self::encoder::Encoder;
 pub use self::decoder::Decoder;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Emo {
     Nop,             // 0
     Laugh,           // 1
@@ -81,7 +81,7 @@ pub enum Emo {
     Custom(Vec<u8>)  // 240
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Message {
     Nop,                    // 0
     Text(String),           // 128

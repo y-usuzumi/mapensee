@@ -3,7 +3,7 @@ use std::str;
 use std::io::{Cursor, Read, Seek, SeekFrom};
 use bytes::{BytesMut};
 use byteorder::{BigEndian, ReadBytesExt};
-use super::{Message};
+use super::{Message, Emo};
 use super::error::Error;
 
 use super::consts;
@@ -44,35 +44,50 @@ impl Decoder for String {
     }
 }
 
+impl Decoder for Emo {
+    fn decode_from(buf: &mut BytesMut) -> Result<Self> {
+        let emo_code = buf[0];
+        buf.advance(1);
+        let msg = match emo_code {
+            consts::MESSAGE_EMO_CODE_NOP => Emo::Nop,
+            consts::MESSAGE_EMO_CODE_LAUGH => Emo::Laugh,
+            consts::MESSAGE_EMO_CODE_CRY => Emo::Cry,
+            _ => return Err(Error::InvalidEmoCode(emo_code))
+        };
+        Ok(msg)
+    }
+}
+
 impl Decoder for Message {
     fn decode_from(buf: &mut BytesMut) -> Result<Self> {
         let type_code = buf[0];
         buf.advance(1);
         let msg = match type_code {
-            consts::MESSAGE_NOP_TYPE_CODE => Message::Nop,
-            consts::MESSAGE_TEXT_TYPE_CODE => {
+            consts::MESSAGE_TYPE_CODE_NOP => Message::Nop,
+            consts::MESSAGE_TYPE_CODE_TEXT => {
                 let s = try!(String::decode_from(buf));
                 Message::Text(s)
             },
-            consts::MESSAGE_EMO_TYPE_CODE => {
+            consts::MESSAGE_TYPE_CODE_EMO => {
+                let s = try!(Emo::decode_from(buf));
+                Message::Emo(s)
+            },
+            consts::MESSAGE_TYPE_CODE_IMAGE => {
                 Message::Nop
             },
-            consts::MESSAGE_IMAGE_TYPE_CODE => {
-                Message::Nop
-            },
-            consts::MESSAGE_COMPOUND_TYPE_CODE => {
+            consts::MESSAGE_TYPE_CODE_COMPOUND => {
                 Message::Nop
             },
             _ => return Err(Error::InvalidTypeCode(type_code))
         };
-        return Ok(msg);
+        Ok(msg)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use bytes::{BytesMut};
-    use super::{Message, Decoder};
+    use super::{Message, Emo, Decoder};
 
     #[test]
     fn decode_text() {
@@ -80,13 +95,37 @@ mod tests {
             &b"\x80\x00\x00\x00\x10ITRE\xe8\xa7\xa3\xe7\xa0\x81\xe6\xb5\x8b\xe8\xaf\x95"[..]
         );
         let msg = Message::decode_from(&mut bm);
-        assert!(match msg {
-            Ok(_) => true,
-            Err(_) => false
-        });
-        assert!(match msg.unwrap() {
-            Message::Text(s) => s == String::from("ITRE解码测试"),
-            _ => false
-        });
+        assert_eq!(
+            msg.unwrap(),
+            Message::Text(String::from("ITRE解码测试"))
+        );
+    }
+
+    #[test]
+    fn decode_emo() {
+        {
+            let mut bm = BytesMut::from(&b"\x82\x00"[..]);
+            let msg = Message::decode_from(&mut bm);
+            assert_eq!(
+                msg.unwrap(),
+                Message::Emo(Emo::Nop)
+            );
+        }
+        {
+            let mut bm = BytesMut::from(&b"\x82\x01"[..]);
+            let msg = Message::decode_from(&mut bm);
+            assert_eq!(
+                msg.unwrap(),
+                Message::Emo(Emo::Laugh)
+            );
+        }
+        {
+            let mut bm = BytesMut::from(&b"\x82\x02"[..]);
+            let msg = Message::decode_from(&mut bm);
+            assert_eq!(
+                msg.unwrap(),
+                Message::Emo(Emo::Cry)
+            );
+        }
     }
 }

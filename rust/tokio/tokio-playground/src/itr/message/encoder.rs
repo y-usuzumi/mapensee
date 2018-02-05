@@ -21,15 +21,34 @@ impl Encoder for String {
     }
 }
 
+impl Encoder for Emo {
+    fn encode_into(&mut self, buf: &mut BytesMut) {
+        match *self {
+            Emo::Nop => {
+                buf.put_u8(consts::MESSAGE_EMO_CODE_NOP);
+            },
+            Emo::Laugh => {
+                buf.put_u8(consts::MESSAGE_EMO_CODE_LAUGH);
+            },
+            Emo::Cry => {
+                buf.put_u8(consts::MESSAGE_EMO_CODE_CRY);
+            },
+            Emo::Custom(_) => {
+                panic!("Not implemented yet");
+            }
+        }
+    }
+}
+
 impl Encoder for Message {
     fn encode_into(&mut self, buf: &mut BytesMut) {
         // Type code
         buf.put_u8(match *self {
-            Message::Nop => consts::MESSAGE_NOP_TYPE_CODE,
-            Message::Text(_) => consts::MESSAGE_TEXT_TYPE_CODE,
-            Message::Emo(_) => consts::MESSAGE_EMO_TYPE_CODE,
-            Message::Image(_, _) => consts::MESSAGE_IMAGE_TYPE_CODE,
-            Message::Compound(_) => consts::MESSAGE_COMPOUND_TYPE_CODE,
+            Message::Nop => consts::MESSAGE_TYPE_CODE_NOP,
+            Message::Text(_) => consts::MESSAGE_TYPE_CODE_TEXT,
+            Message::Emo(_) => consts::MESSAGE_TYPE_CODE_EMO,
+            Message::Image(_, _) => consts::MESSAGE_TYPE_CODE_IMAGE,
+            Message::Compound(_) => consts::MESSAGE_TYPE_CODE_COMPOUND,
         });
         match *self {
             Message::Text(ref mut t) => t.encode_into(buf),
@@ -61,25 +80,6 @@ impl Encoder for Message {
                 }
             },
             _ => {}
-        }
-    }
-}
-
-impl Encoder for Emo {
-    fn encode_into(&mut self, buf: &mut BytesMut) {
-        match *self {
-            Emo::Nop => {
-                buf.put_u8(0);
-            },
-            Emo::Laugh => {
-                buf.put_u8(1);
-            },
-            Emo::Cry => {
-                buf.put_u8(2);
-            },
-            Emo::Custom(_) => {
-                panic!("Not implemented yet");
-            }
         }
     }
 }
