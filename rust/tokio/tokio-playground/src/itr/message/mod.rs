@@ -28,10 +28,10 @@
 //!         |Total text length|Text content|
 //!         | 2 bytes         | ...        |
 //!     </pre>
-//!     However, if the total text length is greater than 4294967294 (2^32-2),
+//!     However, if the total text length is greater than 65534 (2^16-2),
 //!     the encoding result will be:
 //!     <pre>
-//!         | 2^32-1 | the type-specific encoding of the first 2^32-2 bytes
+//!         | 2^16-1 | the type-specific encoding of the first 2^16-2 bytes
 //!     </pre>
 //!     followed by:
 //!     <pre>
