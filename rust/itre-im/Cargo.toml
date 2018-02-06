@@ -1,6 +1,17 @@
 [package]
 name = "itre-im"
 version = "0.1.0"
-authors = ["Kenneth Zhao <kenneth.zhao@netis.com.cn>"]
+authors = ["Yukio Usuzumi <anohigisavay@gmail.com>"]
+
+[[bin]]
+name = "itre-im-server"
+path = "server/main.rs"
+
+[[bin]]
+name = "itre-im-client"
+path = "client/main.rs"
 
 [dependencies]
+bytes = "*"
+byteorder = "*"
+itre = { git = "https://github.com/y-usuzumi/itre" }
