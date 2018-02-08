@@ -14,6 +14,7 @@ path = "client/main.rs"
 [dependencies]
 bytes = "*"
 byteorder = "*"
+futures = "*"
 tokio-io = "*"
 tokio-proto = "*"
 itre = { git = "https://github.com/y-usuzumi/itre" }

@@ -5,33 +5,14 @@ pub mod codec {
     use itre::Message as ItreMessage;
     use itre::encoder::Encoder as ItreEncoder;
     use itre::decoder::Decoder as ItreDecoder;
-    use itre::error::Error as ItreError;
 
     pub struct ItreCodec;
 
-    pub enum ItreCodecError {
-        ItreError(ItreError),
-        IOError(std::io::Error)
-    }
-    pub type ItreCodecResult<T> = Result<T, ItreCodecError>;
-
-    impl From<std::io::Error> for ItreCodecError {
-        fn from(e: std::io::Error) -> Self {
-            ItreCodecError::IOError(e)
-        }
-    }
-
-    impl From<ItreError> for ItreCodecError {
-        fn from(e: ItreError) -> Self {
-            ItreCodecError::ItreError(e)
-        }
-    }
-
     impl Encoder for ItreCodec {
         type Item = ItreMessage;
-        type Error = ItreCodecError;
+        type Error = std::io::Error;
 
-        fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> ItreCodecResult<()> {
+        fn encode(&mut self, msg: Self::Item, buf: &mut BytesMut) -> std::io::Result<()> {
             msg.encode_into(buf);
             Ok(())
         }
@@ -39,12 +20,12 @@ pub mod codec {
 
     impl Decoder for ItreCodec {
         type Item = ItreMessage;
-        type Error = ItreCodecError;
+        type Error = std::io::Error;
 
-        fn decode(&mut self, buf: &mut BytesMut) -> ItreCodecResult<Option<Self::Item>> {
+        fn decode(&mut self, buf: &mut BytesMut) -> std::io::Result<Option<Self::Item>> {
             match Self::Item::decode_from(buf) {
                 Ok(msg) => Ok(Some(msg)),
-                Err(e) => Err(ItreCodecError::from(e))
+                Err(_) => panic!("Not implemented yet")
             }
         }
     }
@@ -62,9 +43,9 @@ impl<T: AsyncRead + AsyncWrite + 'static> ServerProto<T> for ItreProto {
     type Request = ItreMessage;
     type Response = ItreMessage;
     type Transport = Framed<T, codec::ItreCodec>;
-    type BindTransport = Result<Self::Transport, codec::ItreCodecError>;
+    type BindTransport = Result<Self::Transport, std::io::Error>;
 
     fn bind_transport(&self, io: T) -> Self::BindTransport {
-        Ok(io.framed(codec::ItreCodec));
+        Ok(io.framed(codec::ItreCodec))
     }
 }
