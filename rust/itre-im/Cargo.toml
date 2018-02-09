@@ -17,4 +17,5 @@ byteorder = "*"
 futures = "*"
 tokio-io = "*"
 tokio-proto = "*"
+tokio-service = "*"
 itre = { git = "https://github.com/y-usuzumi/itre" }
