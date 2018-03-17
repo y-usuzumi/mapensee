@@ -1,0 +1,83 @@
+=======
+= Intro
+=======
+F G#
+A# C#
+D# Dm Cm F
+A# G# Gm F# G#
+
+
+========
+= 1
+========
+A# F
+Gm Dm
+D# F Dm Gm
+Cm F
+-----------
+Gm D# F A#
+Cm Dm D#m F G
+-----------
+C F G C
+Am D G
+C F E Am
+F C Dm Em
+Dm-Em F G
+C
+(C A# D# F)
+
+========
+= 2
+========
+A# F
+Gm Dm
+D# F Dm Gm
+Cm F
+----------
+Gm D# F A#
+Cm Cm Dm Dm
+D# C7
+F G
+----------
+C F G C
+Am D G
+C F E Am
+F C Dm Em
+Dm-Em F G
+C
+
+========
+= 3
+========
+C F G
+Am D G
+C F G
+Am D G
+
+有问题：D# G# Gm Cm F-Gm G#-A# F
+
+========
+= 4
+=========
+A# D# F A#
+Gm C F G
+
+=========
+= 5
+=========
+C F G C
+Am D G
+C F E Am
+F C Dm Em
+Dm-Em F G
+C F E Am
+F C Dm Em
+Dm-Em F G
+C
+
+=========
+= 6
+=========
+C G/Bm Am Em F C Dm G
+C G/Bm Am Em F C Dm G
+C A#add2 C
