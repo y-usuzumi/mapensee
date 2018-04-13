@@ -2,6 +2,7 @@
 import time
 import queue
 import heapq
+import select
 
 
 def norm_delay(t):
@@ -44,6 +45,8 @@ class EventLoop:
         self._next_tick_event_queue = queue.Queue()
         self._time = None
         self._timeouts = []
+        self._fd_handlers = {}
+        self._poll = self._create_polling_object()
 
     def next_tick(self):
         self._time = time.time()
@@ -70,8 +73,16 @@ class EventLoop:
         for timeout in due_timeouts:
             timeout.callback()
 
+        while not self._event_queue.empty():
+            event = self._event_queue.get()
+            event.handle()
+
+        print("K")
+        self._poll.poll(timeout=1)
+        print("L")
+
     def process_event(self, event):
-        pass
+        event.handle()
 
     def _set_timeout(self, callback, delay, periodic=False):
         delay = norm_delay(delay)
@@ -87,6 +98,43 @@ class EventLoop:
     def set_interval(self, callback, interval):
         self._set_timeout(callback, interval, periodic=True)
 
+    def add_handler(self, fd, callback, io_events):
+        self._fd_handlers.setdefault(fd, []).append(callback)
+        self._register_poll_handler(fd, io_events)
+
     def run(self):
         while True:
             self.next_tick()
+
+    def _create_polling_object(self):
+        raise NotImplementedError
+
+    def _register_poll_handler(self, fd, io_events):
+        raise NotImplementedError
+
+
+class EPollEventLoop(EventLoop):
+    # Constants from the epoll module
+    _EPOLLIN = 0x001
+    _EPOLLPRI = 0x002
+    _EPOLLOUT = 0x004
+    _EPOLLERR = 0x008
+    _EPOLLHUP = 0x010
+    _EPOLLRDHUP = 0x2000
+    _EPOLLONESHOT = (1 << 30)
+    _EPOLLET = (1 << 31)
+
+    # Our events map exactly to the epoll events
+    NONE = 0
+    READ = _EPOLLIN
+    WRITE = _EPOLLOUT
+    ERROR = _EPOLLERR | _EPOLLHUP
+
+    def register(self, fd, events):
+        select.epoll.register(fd, events | self.ERROR)
+
+    def _create_polling_object(self):
+        return select.epoll()
+
+    def _register_poll_handler(self, fd, io_events):
+        self._poll.register(fd)

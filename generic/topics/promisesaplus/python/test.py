@@ -1,6 +1,7 @@
 import time
 from threading import Thread
-from event_loop import EventLoop
+from event_loop import EPollEventLoop
+from async_util import AsyncIO
 
 
 def control(loop):
@@ -17,10 +18,11 @@ def control(loop):
     loop.set_interval(i_love_u, 1000)
     loop.set_timeout(u_rock, 5000)
     print("world!")
+    AsyncIO.read_file(loop, '/home/kj/temp/fff', None)
 
 
 if __name__ == '__main__':
-    loop = EventLoop()
+    loop = EPollEventLoop()
     t = Thread(target=control, args=(loop, ))
     t.daemon = True
     t.start()
