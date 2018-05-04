@@ -61,6 +61,11 @@ print(type(A))  # <class 'type'>
 3. 各种双下划线包围标示的魔法变量/函数/方法
 
 
+## 注释
+
+用`#`。。没有多行注释。。。辣鸡。。。
+
+
 ## 常用数据类型
 
 ```python
@@ -137,6 +142,10 @@ a.py:
 ./a.py
 ```
 
+### 其他方法
+
+.pyc
+
 ## 执行什么？
 
 1. 会按次序执行当前文件内的所有内容
@@ -164,7 +173,7 @@ else:
 ## 循环
 
 ```python
-for <元素> in <迭代器>:
+for <元素> in <迭代器容器>:
     <代码>
 else:
     <未使用break时会执行的代码>
@@ -214,9 +223,14 @@ def func(a, b, *args, c, d, **kwargs):
     print("D: %s" % d)
     print("Kwargs: %s" % kwargs)
     
-func(1, 2, 3, 4, c=5, d=6, e=7, f=8)
+    # 函数可返回多个值，此时调用方接收到的是元组
+    return 'a', 'b', 'c'
+    
+ret = func(1, 2, 3, 4, c=5, d=6, e=7, f=8)
+print("Result: %s" % (ret,))
 ```
 输出：
+
 ```
 A: 1
 B: 2
@@ -224,7 +238,17 @@ Args: (3, 4)
 C: 5
 D: 6
 Kwargs: {'e': 7, 'f': 8}
+Result: ('a', 'b', 'c')
 ```
+
+### 匿名函数
+
+不支持多行。。。相当鸡肋
+
+```python
+a = lambda x: x + 1
+```
+
 
 ### 调用函数
 
@@ -330,3 +354,130 @@ m.pi  # 3.1415926535897932384626
 否则，不再调用`__init__`方法。
 
 通常你不需要用`__new__`。
+
+
+## 多重继承和方法解析顺序 (MRO)
+
+不需要了解。
+
+
+## 推导式
+
+又可以轻松一点了。
+
+适用于Python的三大集合类型：list, set, dict
+
+```python
+# 列表推导式
+[str(i) for i in range(10) if i % 2 == 0]           # ['0', '2', '4', '6', '8']
+# 集合推导式
+{i % 3 for i in range(10)}                          # {0, 1, 2}
+# 字典推导式
+{k: v for k, v in zip(['a', 'b', 'c'], [1, 2, 3])}  # {'a': 1, 'b': 2, 'c': 3}
+# 生成器推导式：
+(str(i) for i in range(10) if i % 2 == 0)           # <generator object <genexpr> at 0x7fe49cc3a830>
+```
+
+
+## 迭代器
+
+*迭代器容器*是指可以用在`for`循环中的容器。
+迭代器容器实现如下方法：
+
+```python
+container.__iter__()  # 返回迭代器
+```
+
+满足迭代器协议的对象为迭代器。
+迭代器协议为如下两个方法：
+
+```python
+iterator.__iter__()  # 返回自己
+iterator.__next__()  # 返回下一个元素或raise StopIteration表示迭代结束
+```
+之所以迭代器要实现`__iter__`是因为这可以让迭代器本身支持`for`循环。
+
+
+## 生成器
+
+生成器也是一种迭代器，所以它可以用在`for`循环中。
+生成器可以通过包含`yield`关键字的函数创建：
+
+```python
+def fib():
+    a, b = 1, 1
+    while True:
+        yield a
+        a, b = b, a + b
+        
+fib_seq = fib()
+print(next(fib_seq) for _ in range(10))
+```
+
+也可以使用生成器推导式（上面讲过了）。
+
+
+## del
+
+用来删除变量，或列表/字典中的元素。
+
+```python
+a = 3
+del a
+a                     # NameError
+
+a = [1, 2]
+del a[0]
+a                     # [2]
+
+a = {'a': 1, 'b': 2}
+del a['b']
+a                     # {'a': 1}
+```
+
+当变量定义了`__del__`方法时，可以自定义其行为。
+
+
+## 装饰器
+
+装饰器是一个函数，它接收被装饰的东西，返回新东西，并将其绑定到被装饰的名称上。
+
+```python
+def shitty_decorator(func):
+    return 3
+    
+    
+@shitty_decorator
+def whoami():
+    print("Who am I?")
+
+
+print(whoami)    # 3
+```
+
+装饰器可以叠加多个，每一个都接收下方装饰器返回的新物件。
+装饰器可以以函数调用的方式进行，相当于首先调用函数，然后将其返回的装饰器装饰在目标物件上，如：
+
+```python
+def shitty_decorator(value):
+    def wrapper(func):
+        return value
+
+    return wrapper
+        
+        
+@shitty_decorator(100)
+def whoami():
+    print("Who am I?")
+    
+    
+print(whoami)    # 100
+```
+
+
+## 描述器
+
+暂时不需要了解。
+
+
+# 好累呀，先睡了。。。
