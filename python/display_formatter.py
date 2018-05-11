@@ -12,16 +12,6 @@ __all__ = [
 ]
 
 
-def dictdeepmerge(a, b):
-    # TODO: implement this
-    pass
-
-
-class Dotdictify(dict):
-    # TODO: implement this
-    pass
-
-
 class _Ignored(object):
     pass
 
