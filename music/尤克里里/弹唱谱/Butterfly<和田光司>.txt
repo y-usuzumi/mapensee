@@ -1,0 +1,18 @@
+A  E  D
+A  E  G
+A  E  D
+A  E  G
+===
+
+A  C#m
+D  D7  E7  A
+
+A  C#m
+D  D7  E7  A
+
+D  A  D  A
+D  A  D  E  F  G  Esus4  E
+===
+
+A  E  F#m  C#m  D  A  F#m  D  E
+A  E  F#m  C#m  D  A  F#m  F  G  A
