@@ -1,6 +1,6 @@
-A  E  D
+A  G  D
 A  E  G
-A  E  D
+A  G  D
 A  E  G
 ===
 
