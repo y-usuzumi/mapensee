@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        .container {
+            text-align: center;
+        }
+        .scrollbar {
+            display: block;
+            border: 2px gray solid;
+            border-radius: 30px;
+            width: 500px;
+            padding: 10px;
+            text-align: center;
+            font-size: 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div id="scrollbar" class="scrollbar"></div>
+    </div>
+
+</body>
+
+<script type="text/javascript">
+var mousePos = {
+    x: 0,
+    y: 0
+};
+document.addEventListener('mousemove', function(e) {
+    mousePos.x = e.screenX;
+    mousePos.y = e.screenY;
+});
+
+function ScrollBar(elem) {
+    var self = this;
+    self._init(elem);
+    self._state = {
+        tmr: null,
+        state: 'idle',
+        startPos: {
+            x: null,
+            y: null,
+        },
+        counter: 0,
+    };
+    self._setCounter(0);
+
+    self._elem.addEventListener('mousedown', function(e) {
+        clearTimeout(self._state.tmr);
+        self._state.state = 'scrolling';
+        self._state.startPos.x = e.screenX;
+        self._state.startPos.y = e.screenY;
+        self._state.tmr = window.setInterval(function() {
+            var speed = parseInt((mousePos.x - self._state.startPos.x) / 100);
+            self._add(speed);
+        }, 10);
+    })
+    self._elem.addEventListener('mouseup', function() {
+        clearTimeout(self._state.tmr);
+        self._state.state = 'idle';
+    })
+}
+
+ScrollBar.prototype._setCounter = function(counter) {
+    this._state.counter = counter;
+    this._elem.innerHTML = counter.toString();
+};
+
+ScrollBar.prototype._add = function(c) {
+    this._setCounter(this._state.counter + c);
+}
+
+ScrollBar.prototype._init = function(elem) {
+    this._elem = elem;
+    this._elem.style.width = 500;
+}
+
+var sb = new ScrollBar(document.getElementById("scrollbar"));
+</script>
+</html>
