@@ -1,0 +1,10 @@
+package part1
+
+-- Part1
+-- by Yukio Usuzumi
+
+opts = ""
+sourcedir = src
+modules = Part1
+executable = part1
+main = Part1
