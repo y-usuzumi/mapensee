@@ -1,20 +1,20 @@
-root:
-  _url: null  # will be an argument in the client constructor
-  users:
-    all:
-      $url: "${super}/users"
-      $method: "GET"  # default is GET
-    get:
-      $url: "${.all}/users/<id:number>"
-      $method: "GET"
-      $async: true
-    create:
-      $url: "${.all}"
-      $method: "POST"
-      $async: true
-    update:
-      $url: "${.all}"
-      $method: "PUT"
-      $async: true
-
-
+$url: null  # will be an argument in the client constructor
+~users:
+  $url: "${super}/users"
+  all:
+    $method: "GET"  # default is GET
+    $async: false  # default is true
+  get:
+    $url: "${super}/<id:number>"
+    $method: "GET"
+  create:
+    $method: "POST"
+    $data:
+      username: "string"
+      password: "string"
+  update:
+    $url: "${super}/<id:number>/"
+    $method: "PUT"
+  ~budgets:
+    $url: "${super}/budgets"
+    all: {}
