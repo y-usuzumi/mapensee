@@ -3,7 +3,6 @@ $url: null  # will be an argument in the client constructor
   $url: "${super}/users"
   all:
     $method: "GET"  # default is GET
-    $async: false  # default is true
   get:
     $url: "${super}/<id:number>"
     $method: "GET"

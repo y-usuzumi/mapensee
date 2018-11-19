@@ -2,17 +2,19 @@
     "compilerOptions": {
         "target": "es6",
         "module": "commonjs",
+        "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
+        "moduleResolution": "node",
         "lib": [
             "es2015",
             "dom"
         ],
         "noImplicitAny": true,
-        // "strictNullChecks": true,
+        "strictNullChecks": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "outDir": "dist",
-        "sourceMap": true
+        "sourceMap": true,
     },
     "include": [
         "src/**/*",

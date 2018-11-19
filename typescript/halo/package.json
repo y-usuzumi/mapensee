@@ -10,5 +10,17 @@
     "test": "mocha"
   },
   "author": "Yukio Usuzumi",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@types/yaml": "^1.0.1"
+  },
+  "dependencies": {
+    "@types/argparse": "^1.0.35",
+    "@types/mz": "0.0.32",
+    "argparse": "^1.0.10",
+    "axios": "^0.18.0",
+    "fs-promise": "^2.0.3",
+    "mz": "^2.7.0",
+    "yaml": "^1.0.2"
+  }
 }
