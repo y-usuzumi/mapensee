@@ -1,0 +1,14 @@
+{
+  "name": "halo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.ts",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Yukio Usuzumi",
+  "license": "ISC"
+}
