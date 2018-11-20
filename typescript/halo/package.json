@@ -2,7 +2,7 @@
   "name": "halo",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "directories": {
     "test": "tests"
   },
@@ -13,14 +13,16 @@
   "author": "Yukio Usuzumi",
   "license": "ISC",
   "devDependencies": {
-    "@types/yaml": "^1.0.1"
+    "@types/yaml": "^1.0.1",
+    "ts-node": "^7.0.1",
+    "tsconfig-paths": "^3.7.0",
+    "typescript": "^3.1.6"
   },
   "dependencies": {
     "@types/argparse": "^1.0.35",
     "@types/mz": "0.0.32",
     "argparse": "^1.0.10",
     "axios": "^0.18.0",
-    "fs-promise": "^2.0.3",
     "mz": "^2.7.0",
     "yaml": "^1.0.2"
   }

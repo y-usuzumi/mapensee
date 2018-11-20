@@ -15,9 +15,9 @@
         "preserveConstEnums": true,
         "outDir": "dist",
         "sourceMap": true,
-        "baseUrl": ".",
+        "baseUrl": "src",
         "paths": {
-            "halo/*": ["src/*"]
+            "halo/*": ["*"]
         }
     },
     "include": [

@@ -1,5 +1,10 @@
 import {parseFile} from "./schema/parser";
 
 (async () => {
-    await parseFile("tests/fixtures/sample.yaml");
+    try {
+        const schema = await parseFile("tests/fixtures/sample.yaml");
+        console.log(schema);
+    } catch (e) {
+        console.log(e);
+    }
 })();

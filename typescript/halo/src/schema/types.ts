@@ -68,7 +68,7 @@ export class PutAPI extends API {
 export class APISet {
     protected readonly _url: Nullable<string>;
     protected readonly _context: IContext;
-    protected readonly _apis: Map<string, API|APISet>;
+    protected readonly _apis: Map<string, API|APISet> = new Map();
 
     constructor(url: Nullable<string>, context: IContext) {
         this._url = url;
@@ -83,7 +83,7 @@ export class APISet {
 export class Schema {
     protected readonly _url: Nullable<string>;
     protected readonly _context: IContext;
-    protected readonly _apis: Map<string, API|APISet>;
+    protected readonly _apis: Map<string, API|APISet> = new Map();
 
     constructor(url: Nullable<string>, context: IContext) {
         this._url = url;

@@ -29,6 +29,9 @@ function parseSchema(node: ISchemaNode): Schema {
     const schema = new Schema(url, ctx);
     // tslint:disable-next-line:forin
     for (let k in node) {
+        if (k.startsWith("$")) {
+            continue;
+        }
         const subNode = node[k] as ISchemaNode;
         switch (getNodeType(k)) {
             case NodeType.APISet:
@@ -68,6 +71,8 @@ function parseAPI(node: ISchemaNode, context: IContext): API {
     const ctx = Object.assign({}, node, {super: context});
     let api;
     switch (node.$method) {
+        case null:
+        case undefined:
         case "GET":
         case "get":
         {
