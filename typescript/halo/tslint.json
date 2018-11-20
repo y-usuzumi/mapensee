@@ -7,9 +7,10 @@
     "rules": {
         "arrow-parens": false,
         "max-classes-per-file": false,
+        "member-ordering": false,
         "no-console": false,
         "no-string-literal": false,
-        "variable-name": false,
+        "variable-name": false
     },
     "rulesDirectory": []
 }

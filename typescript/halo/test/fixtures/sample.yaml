@@ -4,7 +4,12 @@ $url: null  # will be an argument in the client constructor
   all:
     $method: "GET"  # default is GET
   get:
-    $url: "${super}/<id:number>"
+    $args:
+      id: "number"
+      wtf: "string"
+    $url: "${super}/${id}"
+    $params:
+      wtf: "${args.wtf}"
     $method: "GET"
   create:
     $method: "POST"

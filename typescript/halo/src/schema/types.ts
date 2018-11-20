@@ -9,6 +9,7 @@ export interface IContext {
 }
 
 export abstract class API {
+    public readonly tag = "api";
     protected readonly _method: string;
     protected _url: Nullable<string>;
     protected _context: IContext;
@@ -16,6 +17,14 @@ export abstract class API {
     constructor(url: Nullable<string>, context: IContext) {
         this._url = url;
         this._context = context;
+    }
+
+    public get url(): Nullable<string> {
+        return this._url;
+    }
+
+    public get context(): IContext {
+        return this._context;
     }
 
     public get method(): string {
@@ -66,6 +75,7 @@ export class PutAPI extends API {
 }
 
 export class APISet {
+    public readonly tag = "apiset";
     protected readonly _url: Nullable<string>;
     protected readonly _context: IContext;
     protected readonly _apis: Map<string, API|APISet> = new Map();
@@ -73,6 +83,18 @@ export class APISet {
     constructor(url: Nullable<string>, context: IContext) {
         this._url = url;
         this._context = context;
+    }
+
+    public get url(): Nullable<string> {
+        return this._url;
+    }
+
+    public get context(): IContext {
+        return this._context;
+    }
+
+    public get apis(): Map<string, API|APISet> {
+        return this._apis;
     }
 
     public addAPI(k: string, api: API|APISet) {
@@ -92,6 +114,10 @@ export class Schema {
 
     public get url(): Nullable<string> {
         return this._url;
+    }
+
+    public get apis(): Map<string, API|APISet> {
+        return this._apis;
     }
 
     public addAPI(k: string, api: API|APISet) {
