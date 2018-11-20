@@ -7,6 +7,7 @@
     "test": "tests"
   },
   "scripts": {
+    "start": "tsc && node dist/index.js",
     "test": "mocha"
   },
   "author": "Yukio Usuzumi",

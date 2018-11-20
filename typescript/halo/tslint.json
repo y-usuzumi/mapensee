@@ -5,8 +5,10 @@
     ],
     "jsRules": {},
     "rules": {
+        "arrow-parens": false,
+        "max-classes-per-file": false,
         "no-console": false,
-        "no-string-literal": false,
+        "no-string-literal": false
     },
     "rulesDirectory": []
 }

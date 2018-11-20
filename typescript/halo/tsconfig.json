@@ -6,7 +6,7 @@
         "allowSyntheticDefaultImports": true,
         "moduleResolution": "node",
         "lib": [
-            "es2015",
+            "es2017",
             "dom"
         ],
         "noImplicitAny": true,
@@ -15,6 +15,10 @@
         "preserveConstEnums": true,
         "outDir": "dist",
         "sourceMap": true,
+        "baseUrl": ".",
+        "paths": {
+            "halo/*": ["src/*"]
+        }
     },
     "include": [
         "src/**/*",
