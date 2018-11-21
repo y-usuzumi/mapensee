@@ -4,6 +4,7 @@ import YAML from "yaml";
 import {API, APISet, GetAPI, IContext, PostAPI, PutAPI, Schema} from "../types";
 
 interface ISchemaNode {
+    $as?: string;
     $url?: string;
     $method?: string;
     $data?: {[key: string]: string};
@@ -25,8 +26,9 @@ function getNodeType(k: string): NodeType {
 
 function parseSchema(node: ISchemaNode): Schema {
     const url = node.$url;
+    const schemaName = node.$as;
     const ctx = Object.assign({}, node, {super: null});
-    const schema = new Schema(url, ctx);
+    const schema = new Schema(schemaName, url, ctx);
     // tslint:disable-next-line:forin
     for (let k in node) {
         if (k.startsWith("$")) {
@@ -49,7 +51,7 @@ function parseSchema(node: ISchemaNode): Schema {
 function parseAPISet(node: ISchemaNode, context: IContext): APISet {
     const url = node.$url;
     const ctx = Object.assign({}, node, {super: context});
-    const apiSet = new APISet(url, context);
+    const apiSet = new APISet(node.$as, url, context);
     // tslint:disable-next-line:forin
     for (let k in node) {
         const subNode = node[k] as ISchemaNode;

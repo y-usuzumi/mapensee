@@ -1,7 +1,4 @@
 import {Nullable} from "halo/utils";
-type SingleParam = number | string;
-type MultiParam = SingleParam[];
-type Param = SingleParam | MultiParam;
 
 export interface IContext {
     super: Nullable<IContext>;
@@ -34,14 +31,14 @@ export abstract class API {
 
 export class GetAPI extends API {
     protected readonly _method = "GET";
-    protected readonly _params?: Map<string, Param>;
+    protected readonly _params?: Map<string, string>;
 
-    constructor(url: Nullable<string>, context: IContext, params?: Map<string, Param>) {
+    constructor(url: Nullable<string>, context: IContext, params?: Map<string, string>) {
         super(url, context);
         this._params = params;
     }
 
-    public get params(): Nullable<Map<string, Param>> {
+    public get params(): Nullable<Map<string, string>> {
         return this._params;
     }
 }
@@ -50,7 +47,7 @@ export class PostAPI extends API {
     protected readonly _method: "POST";
     protected readonly _data?: Map<string, any>;
 
-    constructor(url: Nullable<string>, context: IContext, data?: Map<string, Param>) {
+    constructor(url: Nullable<string>, context: IContext, data?: Map<string, string>) {
         super(url, context);
         this._data = data;
     }
@@ -64,7 +61,7 @@ export class PutAPI extends API {
     protected readonly _method: "PUT";
     protected readonly _data?: Map<string, any>;
 
-    constructor(url: Nullable<string>, context: IContext, data?: Map<string, Param>) {
+    constructor(url: Nullable<string>, context: IContext, data?: Map<string, string>) {
         super(url, context);
         this._data = data;
     }
@@ -76,13 +73,19 @@ export class PutAPI extends API {
 
 export class APISet {
     public readonly tag = "apiset";
+    protected readonly _name: Nullable<string>;
     protected readonly _url: Nullable<string>;
     protected readonly _context: IContext;
     protected readonly _apis: Map<string, API|APISet> = new Map();
 
-    constructor(url: Nullable<string>, context: IContext) {
+    constructor(name: Nullable<string>, url: Nullable<string>, context: IContext) {
+        this._name = name;
         this._url = url;
         this._context = context;
+    }
+
+    public get name(): Nullable<string> {
+        return this._name;
     }
 
     public get url(): Nullable<string> {
@@ -103,13 +106,19 @@ export class APISet {
 }
 
 export class Schema {
+    protected readonly _name: Nullable<string>;
     protected readonly _url: Nullable<string>;
     protected readonly _context: IContext;
     protected readonly _apis: Map<string, API|APISet> = new Map();
 
-    constructor(url: Nullable<string>, context: IContext) {
+    constructor(name: Nullable<string>, url: Nullable<string>, context: IContext) {
+        this._name = name;
         this._url = url;
         this._context = context;
+    }
+
+    public get name(): Nullable<string> {
+        return this._name;
     }
 
     public get url(): Nullable<string> {
