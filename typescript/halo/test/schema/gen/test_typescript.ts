@@ -1,6 +1,40 @@
-import assert from "assert";
+import { assert } from "chai";
 import { parseFile } from "halo/schema/parser";
-import { ITSArg, TSClass, TSImport, TSMethod, TypeScriptGen } from "halo/schema/gen/typescript";
+import { parseParameterizedUrl, ITSArg, TSClass, TSImport, TSMethod, TypeScriptGen } from "halo/schema/gen/typescript";
+
+describe("parseParameterizedUrl", function () {
+    it("simple url", function () {
+        const url = "http://www.baidu.com";
+        const [cleanedUrl, args] = parseParameterizedUrl(url);
+        assert.deepEqual(cleanedUrl, `"http://www.baidu.com"`);
+        assert.deepEqual(args, []);
+        console.log(`${url}\n-> ${cleanedUrl}\n&  ${JSON.stringify(args)}`);
+    });
+    it("one arg w/o type", function () {
+        const url = "http://www.baidu.com/<id>";
+        const [cleanedUrl, args] = parseParameterizedUrl(url);
+        assert.deepEqual(cleanedUrl, `"http://www.baidu.com/" + id`);
+        assert.deepEqual(args, [{name: "id", type: "any"}]);
+        console.log(`${url}\n-> ${cleanedUrl}\n&  ${JSON.stringify(args)}`);
+    });
+    it("one arg with type", function () {
+        const url = "http://www.baidu.com/<id:number>";
+        const [cleanedUrl, args] = parseParameterizedUrl(url);
+        assert.deepEqual(cleanedUrl, `"http://www.baidu.com/" + id`);
+        assert.deepEqual(args, [{name: "id", type: "number"}]);
+        console.log(`${url}\n-> ${cleanedUrl}\n&  ${JSON.stringify(args)}`);
+    });
+    it("two args with type", function () {
+        const url = "http://www.baidu.com/<id:number>/<wtf:boolean>/";
+        const [cleanedUrl, args] = parseParameterizedUrl(url);
+        assert.deepEqual(cleanedUrl, `"http://www.baidu.com/" + id + "/" + wtf + "/"`);
+        assert.deepEqual(args, [
+            {name: "id", type: "number"},
+            {name: "wtf", type: "boolean"},
+        ]);
+        console.log(`${url}\n-> ${cleanedUrl}\n&  ${JSON.stringify(args)}`);
+    });
+});
 
 describe("TSImport", function () {
     describe("render", function () {
@@ -27,18 +61,18 @@ describe("TSImport", function () {
     });
 });
 
-describe("TSClass", function () {
-    describe("render", function () {
-        it("frame should be fine", function () {
-            const cls = new TSClass("Hello", true);
-            const methodGet = new TSMethod("http://www.baidu.com/", "get", "get", null, true, [
-                {name: "id", type: "number"},
-            ]);
-            cls.addMethod(methodGet);
-            console.log(cls.render());
-        });
-    });
-});
+// describe("TSClass", function () {
+//     describe("render", function () {
+//         it("frame should be fine", function () {
+//             const cls = new TSClass("Hello", true);
+//             const methodGet = new TSMethod("http://www.baidu.com/", "get", "get", [], true, [
+//                 {name: "id", type: "number"},
+//             ]);
+//             cls.addMethod(methodGet);
+//             console.log(cls.render());
+//         });
+//     });
+// });
 
 describe("TypeScriptGen", function () {
     describe("render", function () {

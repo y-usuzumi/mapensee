@@ -3,6 +3,86 @@ import { isNull, Nullable } from "halo/utils";
 import { Gen } from ".";
 import { API, APISet, GetAPI, PostAPI, PutAPI, Schema } from "../types";
 
+class UnexpectedTokenError implements Error {
+    public name = "UnexpectedTokenError";
+    public message: string;
+    constructor(token: string, pos?: number) {
+        if (isNull(pos)) {
+            this.message = `Unexpected token ${token}`;
+        } else {
+            this.message = `Unexpected token ${token} at position ${pos}`;
+        }
+    }
+}
+
+export function parseParameterizedUrl(url: string): [string, ITSArg[]] {
+    const args: ITSArg[] = [];
+    const cleanUrlSegments = [];
+    let currSegment = "";
+    let argFlag = false;
+    let argNameFlag = false;
+    let argTypeFlag = false;
+    let currArg = "";
+    let currType = "";
+    for (let idx = 0; idx < url.length; idx++) {
+        const c = url[idx];
+        if (!argFlag) {
+            if (c === ">") {
+                throw new UnexpectedTokenError(c, idx);
+            }
+            if (c === "<") {
+                if (currSegment.length > 0) {
+                    cleanUrlSegments.push(JSON.stringify(currSegment));
+                    currSegment = "";
+                }
+                argFlag = true;
+                argNameFlag = true;
+                continue;
+            }
+            currSegment += c;
+        } else {
+            if (c === "<") {
+                throw new UnexpectedTokenError(c, idx);
+            }
+            if (c === ">") {
+                if (argTypeFlag && currType.length === 0) {
+                    throw new UnexpectedTokenError(c, idx);
+                }
+                if (currArg.length > 0) {
+                    if (currType.length === 0) {
+                        currType = "any";
+                    }
+                    args.push({name: currArg, type: currType});
+                    cleanUrlSegments.push(currArg);
+                } else {
+                    throw new UnexpectedTokenError(c, idx);
+                }
+                currArg = "";
+                currType = "";
+                argFlag = false;
+                argNameFlag = false;
+                argTypeFlag = false;
+            } else if (c === ":") {
+                if (argTypeFlag) {
+                    throw new UnexpectedTokenError(c, idx);
+                }
+                argNameFlag = false;
+                argTypeFlag = true;
+            } else {
+                if (argNameFlag) {
+                    currArg += c;
+                } else if (argTypeFlag) {
+                    currType += c;
+                }
+            }
+        }
+    }
+    if (currSegment.length > 0) {
+        cleanUrlSegments.push(JSON.stringify(currSegment));
+    }
+    return [cleanUrlSegments.join(" + "), args];
+}
+
 interface IRenderable {
     render(): string;
 }
@@ -54,11 +134,16 @@ export interface ITSArg {
     type: string;
 }
 
+class TSAxiosCall {
+    constructor(contextFreeUrl: string) {
+
+    }
+}
+
 export class TSMethod implements IRenderable {
     private readonly _url: string;
     private readonly _name: string;
     private readonly _axiosFunc: string;
-    private readonly _data: any;
     private readonly _isPublic: boolean;
     private readonly _args: ITSArg[];
     private readonly _argsTmpl = ejs.compile(`\
@@ -80,11 +165,10 @@ return <%- renderedAxiosCall -%>;
 }
 `);
 
-    constructor(url: string, name: string, axiosFunc: string, data: any, isPublic: boolean = true, args: ITSArg[]) {
+    constructor(url: string, name: string, axiosFunc: string, args: ITSArg[], axiosCall: TSAxiosCall, isPublic: boolean = true) {
         this._url = url;
         this._name = name;
         this._axiosFunc = axiosFunc;
-        this._data = data;
         this._isPublic = isPublic;
         this._args = args;
     }
@@ -95,24 +179,13 @@ return <%- renderedAxiosCall -%>;
         });
     }
 
-    private renderAxiosCall(): string {
-        const args = [JSON.stringify(this._url)];
-        if (!isNull(this._data)) {
-            args.push(JSON.stringify(this._data));
-        }
-        return this._axiosCallTmpl({
-            func: this._axiosFunc,
-            args,
-        });
-    }
-
     public render(): string {
         return this._tmpl({
             url: this._url,
             name: this._name,
             isPublic: this._isPublic,
             renderedArgs: this.renderArgs(),
-            renderedAxiosCall: this.renderAxiosCall(),
+            renderedAxiosCall: "", //this.renderAxiosCall(),
         });
     }
 }
@@ -228,7 +301,7 @@ export class TypeScriptGen extends Gen {
                     }
                 }
             }
-            const apiMethod = new TSMethod(apiMethod, api.url, axiosFunc, );
+            // const apiMethod = new TSMethod(apiMethod, api.url, axiosFunc, );
             break;
             case "apiset":
             let apiSetClsName: string;
