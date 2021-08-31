@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               mandelbrot
+name:               plotly
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
@@ -21,11 +21,12 @@ maintainer:         anohigisavay@gmail.com
 -- category:
 extra-source-files: CHANGELOG.md
 
-executable mandelbrot
+executable plotly
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:    Graphs.Chaos,
+                      Graphs.Mandelbrot
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
