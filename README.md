@@ -1,2 +1,3 @@
 # MaPensée
-My collection of code
+
+A little bit of everything.
