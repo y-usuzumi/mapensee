@@ -4,11 +4,9 @@ pub struct QuickFindUF {
 
 impl QuickFindUF {
     pub fn with_size(size: usize) -> Self {
-        let mut data = Vec::with_capacity(size);
-        for idx in 0..size {
-            data.push(idx);
+        Self {
+            data: Vec::from_iter(0..size),
         }
-        Self { data }
     }
 
     pub fn connected(&self, idxl: usize, idxr: usize) -> bool {
