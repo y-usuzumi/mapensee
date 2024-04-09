@@ -29,6 +29,9 @@ impl QuickUnionWeightedPC {
     pub fn union(&mut self, idxl: usize, idxr: usize) {
         let rootl = self.find_root(idxl);
         let rootr = self.find_root(idxr);
+        if rootl == rootr {
+            return;
+        }
         if self.sizes[rootl] > self.sizes[rootr] {
             self.data[rootr] = rootl;
             self.sizes[rootl] += self.sizes[rootr];
